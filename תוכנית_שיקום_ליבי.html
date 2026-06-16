@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>טופס תוכנית שיקום</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --border: #b8d0ee;
+      --bg: #f4f7fc;
+      --text: #1e2535;
+      --muted: #6b7280;
+      --primary: #2563a8;
+      --primary-dark: #1a3a5c;
+      --gold: #c9933a;
+      --green: #2e7d52;
+      --red: #b83232;
+      --blue-light: #e8f1fb;
+      --white: #ffffff;
+      --shadow: 0 2px 12px rgba(26,58,92,0.10);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Heebo', 'Arial Hebrew', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .page {
+      max-width: 900px;
+      margin: 10px auto;
+      padding: 14px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    h1, h2, h3 { margin: 0 0 14px; }
+
+    /* TOP BAR */
+    .top-bar{
+      background:#1a3a5c;
+      color:white;
+      padding:8px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      box-shadow:0 2px 8px rgba(0,0,0,0.25);
+    }
+
+    .top-bar .subtitle{
+      font-size:12px;
+      color:#a8c4e0;
+      margin-top:2px;
+    }
+
+    .logo{
+      height:44px;
+      width:auto;
+      display:block;
+    }
+
+    h1 { text-align: center; font-size: 30px; }
+    h2 { font-size: 22px; margin-top: 10px; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input, select, textarea, button {
+      font-family: inherit;
+      font-size: 15px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 10px;
+      background: white;
+    }
+
+    textarea { min-height: 76px; resize: none; overflow: hidden; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 2fr 0.8fr 0.8fr 1.6fr;
+      gap: 14px;
+      margin: 8px 0;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .full { grid-column: 1 / -1; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      table-layout: auto;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f1f5f9;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .goal-title {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .goal-title input { max-width: 75%; }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 8px 0;
+    }
+
+    button {
+      border: 0;
+      border-radius: 6px;
+      padding: 8px 16px;
+      cursor: pointer;
+      background: var(--primary);
+      color: white;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .18s;
+    }
+
+    button:hover { background: var(--primary-dark); }
+    button.secondary { background: var(--primary); }
+    button.secondary:hover { background: var(--primary-dark); }
+    button.danger { background: var(--red); }
+    button.danger:hover { background: #932525; }
+    button.print-btn { background: var(--white); color: var(--primary-dark); border: 1px solid var(--border); }
+    button.print-btn:hover { background: var(--blue-light); }
+    button.pdf-btn { background: var(--gold); color: white; }
+    button.pdf-btn:hover { background: #b07d2c; }
+    .actions-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .actions-left, .actions-right {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .muted { color: var(--muted); font-size: 13px; }
+    .readonly-box {
+      border: 1px solid var(--border);
+      background: #fafafa;
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 44px;
+    }
+
+    .partners-box {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+    }
+
+    .check-row input { width: auto; }
+
+    .print-header {
+      display: none;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .signature-line {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      align-items: end;
+    }
+
+    .line {
+      border-top: 1px solid #333;
+      width: 100%;
+      margin-bottom: 2px;
+    }
+
+    @media (max-width: 800px) {
+      .grid, .grid-2, .partners-box, .signature-line {
+        grid-template-columns: 1fr;
+      }
+      .goal-title { flex-direction: column; align-items: stretch; }
+      .goal-title input { max-width: 100%; }
+      table { font-size: 13px; }
+    }
+
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 10mm;
+      }
+      body { background: white; }
+      .page { box-shadow: none; border: 0; margin: 0; max-width: none; }
+      .actions, .no-print, button, datalist { display: none !important; }
+      .print-header { display: block; }
+      input, select, textarea {
+        border: 0;
+        padding: 0;
+        background: transparent;
+        appearance: none;
+      }
+      textarea { height: auto; overflow: visible; }
+      th { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  
+    @media print {
+      textarea { display: none !important; }
+      .print-textarea-proxy { display: block !important; }
+    }
+
+
+/* שמירה/PDF/הדפסה: לשמור על אותה פריסה כמו במסך */
+@media print {
+  .grid {
+    display: grid !important;
+    grid-template-columns: 2fr 0.8fr 0.8fr 1.6fr !important;
+    gap: 14px !important;
+  }
+
+  .partners-box {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .grid-2 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 14px !important;
+  }
+}
+
+
+/* שורה ראשונה: כל תא במסגרת, תאריך מתחת לכותרת */
+.grid > div {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+}
+
+.grid > div label {
+  display: block;
+  margin-bottom: 6px;
+  text-align: right;
+}
+
+.grid > div input,
+.grid > div select {
+  display: block;
+  width: 100%;
+  text-align: right;
+  direction: rtl;
+}
+
+.grid > div input[type="date"] {
+  text-align: center;
+  direction: ltr;
+}
+
+/* הדפסה/PDF: לשמור תאריך בדיוק בתוך התא */
+@media print {
+  .grid > div {
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    padding: 8px !important;
+    background: #fff !important;
+    break-inside: avoid !important;
+  }
+
+  .grid > div label {
+    display: block !important;
+    margin-bottom: 6px !important;
+    text-align: right !important;
+  }
+
+  .grid > div input,
+  .grid > div select {
+    display: block !important;
+    width: 100% !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    padding: 7px 8px !important;
+    background: white !important;
+    box-sizing: border-box !important;
+  }
+
+  .grid > div input[type="date"] {
+    text-align: center !important;
+    direction: ltr !important;
+  }
+}
+
+
+/* שותף נוסף - מסגרות כמו שורת התאריכים */
+.grid-2 > div {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+}
+
+.grid-2 > div label {
+  display: block;
+  margin-bottom: 6px;
+  text-align: right;
+}
+
+.grid-2 > div input {
+  width: 100%;
+  text-align: right;
+  direction: rtl;
+}
+
+/* הדפסה/PDF */
+@media print {
+  .grid-2 > div {
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    padding: 8px !important;
+    background: #fff !important;
+  }
+
+  .grid-2 > div input {
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    padding: 7px 8px !important;
+    background: white !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
+/* יעד textarea - לראות הכל גם בהדפסה */
+.target {
+  min-height: 56px;
+  resize: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+}
+
+
+.excel-top-loader {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:8px;
+  direction:rtl;
+}
+
+.excel-top-loader label {
+  color:#ffffff;
+  font-size:12px;
+  font-weight:600;
+  margin:0;
+}
+
+.excel-top-loader input[type="file"] {
+  width:auto;
+  max-width:220px;
+  font-size:12px;
+  padding:4px;
+  background:#ffffff;
+  border-radius:6px;
+}
+
+.excel-status {
+  font-size:12px;
+  color:#a8c4e0;
+}
+
+
+/* כפתור EXCEL */
+.excel-upload-side{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:4px;
+}
+
+.excel-button{
+  background:#2f7d4d;
+  color:white;
+  padding:10px 18px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:700;
+  font-size:16px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.18);
+  transition:.18s;
+}
+
+.excel-button:hover{
+  background:#25663f;
+}
+
+.excel-status{
+  color:#cfe8d7;
+  font-size:12px;
+}
+
+
+/* כל הכפתורים באותו גודל */
+button,
+.excel-button {
+  min-height: 42px !important;
+  padding: 8px 16px !important;
+  font-size: 15px !important;
+  line-height: 1 !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+
+/* יישור כפתורי מחיקה לאותו קו */
+.goal-title {
+  display: grid !important;
+  grid-template-columns: auto 1fr auto !important;
+  align-items: end !important;
+  gap: 10px !important;
+}
+
+.goal-title .danger {
+  align-self: end !important;
+  min-width: 116px !important;
+}
+
+.actions.no-print {
+  align-items: center !important;
+}
+
+.actions.no-print .danger,
+.pdf-btn {
+  min-width: 116px !important;
+}
+
+
+/* עיצוב כפתורים לפי בקשה */
+.btn-plus {
+  color: #ffffff !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+}
+
+.clear-btn {
+  background: transparent !important;
+  color: var(--red) !important;
+  border: 1.5px solid var(--red) !important;
+  min-width: 116px !important;
+}
+
+.clear-btn:hover {
+  background: rgba(184, 50, 50, 0.08) !important;
+}
+
+.delete-row-btn,
+.delete-goal-btn {
+  color: #ffffff !important;
+  min-width: 116px !important;
+  height: 42px !important;
+  padding: 8px 16px !important;
+  font-size: 15px !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  box-sizing: border-box !important;
+  border: 0 !important;
+}
+
+.delete-row-btn {
+  background: #b83232 !important;
+}
+
+.delete-row-btn:hover {
+  background: #932525 !important;
+}
+
+.delete-goal-btn {
+  background: #c94b3a !important;
+}
+
+.delete-goal-btn:hover {
+  background: #a83b2e !important;
+}
+
+
+/* כפתור שמירה כ-HTML */
+.html-btn {
+  background: #4b6f9f !important;
+  color: #ffffff !important;
+  min-width: 116px !important;
+}
+
+.html-btn:hover {
+  background: #38577d !important;
+}
+
+</style>
+</head>
+<body>
+  <div class="page">
+    
+<div class="top-bar">
+
+  <div class="excel-upload-side no-print">
+    <label class="excel-button">
+      📋 בחר קובץ Excel
+      <input id="excelFile" type="file" accept=".xlsx,.xls" hidden>
+    </label>
+
+    <div id="excelStatus" class="excel-status"></div>
+  </div>
+
+  <div>
+
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="font-size:17px;font-weight:700;color:white;">
+            תוכנית שיקום למקבל שירות
+          </div>
+          <img
+            class="logo"
+            src="data:image/png;base64,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"
+            alt="יחדיו"
+          >
+        </div>
+
+        <div class="subtitle">
+          משרד הבריאות - מפעל מוגן שיקומי לבריאות הנפש באר שבע
+        </div>
+
+        <div class="subtitle">
+          שאול המלך 113, באר שבע
+        </div>
+
+        
+      </div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <label for="clientName">שם מקבל השירות</label>
+        <input id="clientName" list="clientsList" placeholder="" />
+        <datalist id="clientsList"></datalist>
+      </div>
+      <div>
+        <label for="planDate">תאריך</label>
+        <input id="planDate" type="date" />
+      </div>
+
+      <div>
+        <label for="followDate">תאריך מעקב</label>
+        <input id="followDate" type="date" />
+      </div>
+
+      <div>
+        <label for="workshopGuide">מדריך הסדנה</label>
+        <select id="workshopGuide">
+          <option value="">בחר/י מדריך</option>
+          <option>אנדרי אברמוביץ</option>
+          <option>רוזט פירוזה</option>
+          <option>אריסטרך קפוסטה</option>
+          <option>שלום מימון</option>
+        </select>
+      </div>
+    </div>
+
+    <h2 style="margin-top:8px;">שותפים</h2>
+    <div class="partners-box">
+      <label class="check-row"><input type="checkbox" id="partnerClient" checked /> מקבל השירות</label>
+      <label class="check-row"><input type="checkbox" id="partnerGuide" checked /> מדריך הסדנה</label>
+      <label class="check-row"><input type="checkbox" id="partnerManager" /> מנהל מפעל</label>
+    </div>
+
+    <div class="grid-2" style="margin-top:6px;">
+      <div>
+        <label for="extraPartner1">שותף נוסף 1</label>
+        <input id="extraPartner1" placeholder="" />
+      </div>
+      <div>
+        <label for="extraPartner2">שותף נוסף 2</label>
+        <input id="extraPartner2" placeholder="" />
+      </div>
+    </div>
+
+    <div class="actions actions-main no-print">
+      <div class="actions-right">
+        <button class="secondary" onclick="addGoalSection()"><span style="font-size:18px;font-weight:700;color:white;">＋</span> הוסף מטרה</button>
+        <button class="clear-btn" onclick="clearForm()">🗑️ נקה טופס</button>
+      </div>
+      <div class="actions-left">
+        <button class="print-btn" onclick="printForm()">🖨️ הדפסה</button>
+        <button class="pdf-btn" onclick="printPdf()">📄 שמירה כ-PDF</button>
+        <button id="saveHtmlBtn" class="html-btn" onclick="saveAsHtml()">💾 שמירה כ-HTML</button>
+      </div>
+    </div>
+
+    <div id="goalsContainer"></div>
+
+    <h2>סיכום</h2>
+    <div>
+      <label>התכנית נכתבה בשיתוף (שם + תפקיד)</label>
+      <div id="writtenWith" class="readonly-box"></div>
+    </div>
+
+    <div id="signatureSection" class="signature-line" style="display:none;">
+      <div>
+        <label for="signature">חתימת מקבל השירות</label>
+        <input id="signature" placeholder="" />
+      </div>
+      <div>
+        <label style="margin-bottom:6px;display:block;">חתימה דיגיטלית (WACOM)</label>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <canvas id="signatureCanvas"
+            width="340" height="90"
+            style="border:1px solid #b8d0ee;border-radius:8px;touch-action:none;
+                   cursor:crosshair;background:white;display:block;max-width:100%;">
+          </canvas>
+          <div style="display:flex;gap:8px;align-items:center;" class="no-print">
+            <button type="button" onclick="clearSignatureCanvas()" class="clear-btn"
+              style="font-size:13px!important;min-height:32px!important;padding:4px 12px!important;">
+              🗑️ נקה חתימה
+            </button>
+            <label style="font-size:12px;color:#6b7280;align-self:center;font-weight:normal;display:flex;align-items:center;gap:4px;">
+              צבע:
+              <select id="signatureColor" onchange="updateSignatureColor()" style="width:auto;padding:3px 6px;font-size:12px;border-radius:6px;border:1px solid #b8d0ee;">
+                <option value="#1a1aee">כחול</option>
+                <option value="#111111">שחור</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <datalist id="targetsMemory"></datalist>
+
+  <script>
+    const STORAGE_KEYS = {
+      targets: 'rehabTargetsMemory_v1',
+      clients: 'rehabClientsMemory_v1',
+      form: 'rehabLastForm_v1'
+    };
+
+    const socialWorker = 'ליבי יוסופוב (עו"ס המפעל)';
+
+    function todayISO() {
+      const d = new Date();
+      const offset = d.getTimezoneOffset();
+      const local = new Date(d.getTime() - offset * 60000);
+      return local.toISOString().slice(0, 10);
+    }
+
+    function getArray(key) {
+      try { return JSON.parse(localStorage.getItem(key)) || []; }
+      catch { return []; }
+    }
+
+    function setArray(key, value) {
+      localStorage.setItem(key, JSON.stringify([...new Set(value.filter(Boolean))]));
+    }
+
+    function refreshDatalists() {
+      const targets = getArray(STORAGE_KEYS.targets);
+      const clients = getArray(STORAGE_KEYS.clients);
+      document.getElementById('targetsMemory').innerHTML = targets.map(x => `<option value="${escapeHtml(x)}"></option>`).join('');
+      document.getElementById('clientsList').innerHTML = clients.map(x => `<option value="${escapeHtml(x)}"></option>`).join('');
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+    }
+
+    function saveTarget(value) {
+      const clean = value.trim();
+      if (!clean) return;
+      const targets = getArray(STORAGE_KEYS.targets);
+      if (!targets.includes(clean)) {
+        targets.unshift(clean);
+        setArray(STORAGE_KEYS.targets, targets.slice(0, 100));
+        refreshDatalists();
+      }
+    }
+
+    let goalCounter = 0;
+
+    function addGoalSection(data = null) {
+      goalCounter = document.querySelectorAll('.goal-section').length + 1;
+      const container = document.getElementById('goalsContainer');
+      const section = document.createElement('section');
+      section.className = 'goal-section';
+      section.dataset.goalId = goalCounter;
+      section.innerHTML = `
+        <div class="goal-title">
+          <h2 class="goalNumber">מטרה ${goalCounter}</h2>
+          <input class="goalName" placeholder="לדוגמה: איזון מצב נפשי-רגשי" value="${escapeHtml(data?.name || '')}" />
+          <button class="delete-goal-btn no-print" type="button" onclick="deleteGoalSection(this)">מחק מטרה</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:18%;">יעד</th>
+              <th style="width:34%;">כלים להשגת היעד</th>
+              <th style="width:18%;">שותפים וכיצד יוכלו<br>לסייע לי</th>
+              <th style="width:30%;">איך אדע שהצלחתי?</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="actions no-print"
+             style="display:flex;justify-content:space-between;align-items:center;">
+
+          <button
+            type="button"
+            onclick="addRow(this)">
+            <span class="btn-plus">＋</span> הוסף שורה
+          </button>
+
+          <button
+            type="button"
+            class="delete-row-btn"
+            onclick="deleteLastRow(this)">
+            🗑️ מחק שורה
+          </button>
+
+        </div>
+      `;
+      container.appendChild(section);
+
+      const rows = data?.rows?.length ? data.rows : [];
+      rows.forEach(row => addRow(section.querySelector('button'), row));
+    }
+
+    function addRow(buttonOrSection, data = {}) {
+      const section = buttonOrSection.closest ? buttonOrSection.closest('section') : buttonOrSection;
+      const tbody = section.querySelector('tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <textarea class="target" placeholder="" onblur="saveTarget(this.value)">${escapeHtml(data.target || '')}</textarea>
+        </td>
+        <td><textarea class="tools" placeholder="">${escapeHtml(data.tools || '')}</textarea></td>
+        <td><textarea class="partnersHelp" placeholder="">${escapeHtml(data.partnersHelp || defaultPartnersText())}</textarea></td>
+        <td><textarea class="success" placeholder="">${escapeHtml(data.success || '')}</textarea></td>
+      `;
+      tbody.appendChild(tr);
+      // resize any pre-filled textareas in the new row
+      tr.querySelectorAll('textarea').forEach(autoResize);
+    }
+
+    function defaultPartnersText() {
+      return '';
+    }
+
+    function renumberGoals() {
+      document.querySelectorAll('.goal-section').forEach((section, index) => {
+        section.dataset.goalId = index + 1;
+        const title = section.querySelector('.goalNumber');
+        if (title) title.textContent = `מטרה ${index + 1}`;
+      });
+      goalCounter = document.querySelectorAll('.goal-section').length;
+    }
+
+    function deleteGoalSection(button) {
+      button.closest('section').remove();
+      renumberGoals();
+    }
+
+
+    function setFollowDatePlusSixMonths() {
+      const plan = document.getElementById('planDate');
+      const follow = document.getElementById('followDate');
+      if (!plan || !follow || !plan.value) return;
+
+      const [year, month, day] = plan.value.split('-').map(Number);
+      const d = new Date(year, month - 1, day);
+      const originalDay = d.getDate();
+      d.setMonth(d.getMonth() + 6);
+      if (d.getDate() !== originalDay) d.setDate(0);
+
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      follow.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    function updateWrittenWith() {
+      const client = document.getElementById('clientName').value.trim();
+      const guide = document.getElementById('workshopGuide').value.trim();
+      const parts = [socialWorker];
+      if (client) parts.push(`${client} (מקבל השירות)`);
+      if (guide) parts.push(`${guide} (מדריך הסדנה)`);
+
+      document.getElementById('writtenWith').textContent = parts.join(', ') + '.';
+      document.getElementById('signature').value = client || document.getElementById('signature').value;
+    }
+
+    function printForm() {
+      updateWrittenWith();
+      document.querySelectorAll('.target').forEach(el => saveTarget(el.value));
+      saveClientNameNoAlert();
+      window.print();
+    }
+
+    function printPdf() {
+      updateWrittenWith();
+      document.querySelectorAll('.target').forEach(el => saveTarget(el.value));
+      saveClientNameNoAlert();
+      alert('בחלון ההדפסה יש לבחור: שמירה כ-PDF / Save as PDF');
+      window.print();
+    }
+
+    function saveClientNameNoAlert() {
+      const name = document.getElementById('clientName').value.trim();
+      if (!name) return;
+      const clients = getArray(STORAGE_KEYS.clients);
+      if (!clients.includes(name)) {
+        clients.unshift(name);
+        setArray(STORAGE_KEYS.clients, clients.slice(0, 200));
+      }
+      refreshDatalists();
+    }
+
+    function clearForm() {
+      if (!confirm('לנקות את הטופס? רשימות היעדים והלקוחות השמורות לא יימחקו.')) return;
+      applyForm({
+      planDate: todayISO(),
+      goals: [
+        { name: '', rows: [] },
+        { name: '', rows: [] }
+      ]
+    });
+    }
+
+    function applyForm(data) {
+      if (!data) return;
+      document.getElementById('clientName').value = data.clientName || '';
+      document.getElementById('planDate').value = data.planDate || todayISO();
+      setFollowDatePlusSixMonths();
+      document.getElementById('workshopGuide').value = data.workshopGuide || '';
+      document.getElementById('partnerClient').checked = data.partnerClient ?? true;
+      document.getElementById('partnerGuide').checked = data.partnerGuide ?? true;
+      document.getElementById('partnerManager').checked = data.partnerManager ?? false;
+      document.getElementById('extraPartner1').value = data.extraPartner1 || '';
+      document.getElementById('extraPartner2').value = data.extraPartner2 || '';
+      document.getElementById('signature').value = data.signature || data.clientName || '';
+
+      document.getElementById('goalsContainer').innerHTML = '';
+      goalCounter = 0;
+      (data.goals?.length ? data.goals : null)?.forEach(goal => addGoalSection(goal));
+      if (!data.goals?.length) addGoalSection({ name: 'איזון מצב נפשי-רגשי', rows: [{}] });
+      updateWrittenWith();
+      // resize all textareas after content is loaded
+      setTimeout(autoResizeAll, 0);
+    }
+
+    ['clientName','workshopGuide','extraPartner1','extraPartner2','partnerClient','partnerGuide','partnerManager'].forEach(id => {
+      document.addEventListener('input', e => { if (e.target.id === id) updateWrittenWith(); });
+      document.addEventListener('change', e => { if (e.target.id === id) updateWrittenWith(); });
+    });
+
+    window.addEventListener('beforeprint', () => {
+      updateWrittenWith();
+      document.querySelectorAll('.target').forEach(el => saveTarget(el.value));
+    });
+
+    refreshDatalists();
+    applyForm({
+      planDate: todayISO(),
+      goals: [
+        { name: '', rows: [] },
+        { name: '', rows: [] }
+      ]
+    });
+  
+document.getElementById('planDate').addEventListener('change', function () {
+
+    if (!this.value) return;
+
+    const d = new Date(this.value);
+
+    d.setMonth(d.getMonth() + 6);
+
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+
+    document.getElementById('followDate').value =
+        `${year}-${month}-${day}`;
+
+});
+
+
+
+function deleteLastRow(button) {
+
+    const section =
+        button.closest('section');
+
+    const tbody =
+        section.querySelector('tbody');
+
+    const rows =
+        tbody.querySelectorAll('tr');
+
+    if (!rows.length) return;
+
+    rows[rows.length - 1].remove();
+}
+
+
+// ── Auto-resize textareas in real time ─────────────────────────────
+function autoResize(el) {
+    el.style.height = 'auto';
+    var minH = el.classList.contains('target') ? 56 : 76;
+    el.style.height = Math.max(el.scrollHeight, minH) + 'px';
+}
+
+function autoResizeAll() {
+    document.querySelectorAll('textarea').forEach(autoResize);
+}
+
+// Event delegation: catches all textareas including dynamically added ones
+document.addEventListener('input', function(e) {
+    if (e.target.tagName === 'TEXTAREA') autoResize(e.target);
+});
+
+// ── Before/after print: swap textarea ↔ div so full text always shows ──
+function swapTextareasToDivs() {
+    document.querySelectorAll('textarea').forEach(function(ta) {
+        var div = document.createElement('div');
+        div.className = 'print-textarea-proxy';
+        div.textContent = ta.value;
+        // copy computed size so layout stays the same
+        div.style.minHeight = '56px';
+        div.style.whiteSpace = 'pre-wrap';
+        div.style.wordBreak = 'break-word';
+        div.style.fontFamily = 'inherit';
+        div.style.fontSize = 'inherit';
+        div.style.lineHeight = 'inherit';
+        div.style.padding = '9px 10px';
+        div.style.border = '1px solid #b8d0ee';
+        div.style.borderRadius = '8px';
+        div.style.background = 'white';
+        div.style.width = '100%';
+        div.style.boxSizing = 'border-box';
+        // store reference so we can restore
+        div._originalTextarea = ta;
+        ta.parentNode.replaceChild(div, ta);
+    });
+}
+
+function restoreDivsToTextareas() {
+    document.querySelectorAll('.print-textarea-proxy').forEach(function(div) {
+        var ta = div._originalTextarea;
+        if (ta) {
+            div.parentNode.replaceChild(ta, div);
+            autoResize(ta);
+        }
+    });
+}
+
+window.addEventListener('beforeprint', swapTextareasToDivs);
+window.addEventListener('afterprint',  restoreDivsToTextareas);
+
+
+// Capture original filename from URL before any changes
+(function() {
+    var href = window.location.href;
+    // Works when opened as file:// or served
+    var match = href.match(/\/([^\/\?#]+\.html)/i);
+    if (match) {
+        try { window._originalFileName = decodeURIComponent(match[1]); }
+        catch(e) { window._originalFileName = match[1]; }
+    }
+})();
+
+function makeSafeFileName(text) {
+    return String(text || '')
+        .trim()
+        .replace(/[\\/:*?"<>|]/g, '-')
+        .replace(/\s+/g, ' ');
+}
+
+function updateDocumentTitleForPdf() {
+    const client = makeSafeFileName(document.getElementById('clientName')?.value || '');
+    const followDate = makeSafeFileName(document.getElementById('followDate')?.value || '');
+    const fileName = [client, followDate].filter(Boolean).join(' ');
+    if (fileName) document.title = fileName;
+}
+
+['clientName', 'followDate'].forEach(function(id) {
+    document.addEventListener('input', function(e) {
+        if (e.target.id === id) updateDocumentTitleForPdf();
+    });
+    document.addEventListener('change', function(e) {
+        if (e.target.id === id) updateDocumentTitleForPdf();
+    });
+});
+
+window.addEventListener('beforeprint', updateDocumentTitleForPdf);
+
+// ── Excel integration ───────────────────────────────────────────────
+let excelClientGuideMap = {};
+
+function normalizeNameForMatch(value) {
+    return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
+function addGuideOptionIfMissing(guideName) {
+    const guide = normalizeNameForMatch(guideName);
+    if (!guide) return;
+    const select = document.getElementById('workshopGuide');
+    const exists = [...select.options].some(opt => normalizeNameForMatch(opt.value || opt.textContent) === guide);
+    if (!exists) {
+        const opt = document.createElement('option');
+        opt.value = guide;
+        opt.textContent = guide;
+        select.appendChild(opt);
+    }
+}
+
+function loadClientsFromExcel(file) {
+    if (!file) return;
+    const status = document.getElementById('excelStatus');
+    status.textContent = 'קורא קובץ...';
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            excelClientGuideMap = {};
+            const clientNames = [];
+            rows.slice(1).forEach(row => {
+                const client = normalizeNameForMatch(row[2]); // column C
+                const guide  = normalizeNameForMatch(row[5]); // column F
+                if (client) {
+                    excelClientGuideMap[client] = guide;
+                    clientNames.push(client);
+                    addGuideOptionIfMissing(guide);
+                }
+            });
+            const savedClients = getArray(STORAGE_KEYS.clients);
+            setArray(STORAGE_KEYS.clients, [...clientNames, ...savedClients]);
+            refreshDatalists();
+            status.textContent = `נטענו ${clientNames.length} שמות`;
+            updateGuideFromClientName();
+        } catch (err) {
+            console.error(err);
+            status.textContent = 'שגיאה בקריאת הקובץ';
+            alert('לא הצלחתי לקרוא את קובץ ה-Excel. ודא שזה קובץ xlsx/xls תקין.');
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function updateGuideFromClientName() {
+    const client = normalizeNameForMatch(document.getElementById('clientName').value);
+    const guide  = excelClientGuideMap[client];
+    if (guide) {
+        addGuideOptionIfMissing(guide);
+        document.getElementById('workshopGuide').value = guide;
+        updateWrittenWith();
+    }
+}
+
+document.addEventListener('change', function(e) {
+    if (e.target.id === 'excelFile') loadClientsFromExcel(e.target.files[0]);
+    if (e.target.id === 'clientName') updateGuideFromClientName();
+});
+document.addEventListener('input', function(e) {
+    if (e.target.id === 'clientName') updateGuideFromClientName();
+});
+
+
+// ── AB update guard before saving HTML ─────────────────────────────
+function formatDateForExcelAB(isoDate) {
+    if (!isoDate) return '';
+    var parts = String(isoDate).split('-');
+    if (parts.length === 3) return parts[2] + '/' + parts[1] + '/' + parts[0];
+    return isoDate;
+}
+
+async function copyTextToClipboardSafe(text) {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+    } catch (e) {}
+
+    try {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-1000px';
+        ta.style.right = '-1000px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+    } catch (e) {
+        return false;
+    }
+}
+
+async function confirmExcelABUpdatedBeforeSave() {
+    var clientName = (document.getElementById('clientName')?.value || '').trim();
+    var planDateIso = document.getElementById('planDate')?.value || '';
+    var dateForExcel = formatDateForExcelAB(planDateIso);
+
+    if (!clientName || !dateForExcel) return true;
+
+    var copied = await copyTextToClipboardSafe(dateForExcel);
+    var msg =
+        clientName + ' | ' + dateForExcel + '\n\n' +
+        (copied
+            ? 'תאריך התוכנית הועתק.\n\n'
+            : 'יש להעתיק ידנית את התאריך.\n\n') +
+        'יש להדביק ב-Excel עמודה AB\n' +
+        'ולחץ המשך.';
+
+    return confirm(msg);
+}
+
+async function saveAsHtml() {
+    // --- Validation ---
+    const clientVal = document.getElementById('clientName')?.value.trim();
+    const planVal   = document.getElementById('planDate')?.value;
+    if (!clientVal || !planVal) {
+        alert('יש למלא שם מקבל השירות ותאריך לפני השמירה.');
+        return;
+    }
+
+    const abConfirmed = await confirmExcelABUpdatedBeforeSave();
+    if (!abConfirmed) return;
+
+    updateWrittenWith();
+    updateDocumentTitleForPdf();
+
+    // Collect form data FIRST, while textareas are still in the DOM
+    var savedData = collectFormData();
+
+    // Convert canvas to <img> so it's preserved in the saved HTML
+    var sigCanvas = document.getElementById('signatureCanvas');
+    var sigImg = null;
+    if (sigCanvas) {
+        sigImg = document.createElement('img');
+        sigImg.src = sigCanvas.toDataURL('image/png');
+        sigImg.width  = sigCanvas.width;
+        sigImg.height = sigCanvas.height;
+        sigImg.style.cssText = sigCanvas.style.cssText;
+        sigImg.style.border = '1px solid #b8d0ee';
+        sigImg.style.borderRadius = '8px';
+        sigImg.style.display = 'block';
+        sigImg.style.maxWidth = '100%';
+        sigCanvas.parentNode.replaceChild(sigImg, sigCanvas);
+    }
+
+    // Now swap textareas → divs so the cloned HTML shows full text visually
+    swapTextareasToDivs();
+
+    // Clone the document and inject a restore script that runs AFTER
+    // the page's own init (which calls applyForm with empty defaults).
+    // window 'load' fires after all inline scripts, so our data wins.
+    var cloneDoc = document.cloneNode(true);
+
+    // Restore textareas in the live document immediately after cloning
+    restoreDivsToTextareas();
+
+    // Restore canvas (replace the temp img back with the original canvas)
+    if (sigCanvas && sigImg && sigImg.parentNode) {
+        sigImg.parentNode.replaceChild(sigCanvas, sigImg);
+    }
+
+    var restoreScript = cloneDoc.createElement('script');
+    restoreScript.textContent =
+        'window.addEventListener("load", function() {' +
+        '  var d = ' + JSON.stringify(savedData) + ';' +
+        '  if (typeof applyForm === "function") {' +
+        '    if (d.signatureImage) window._pendingSignatureImage = d.signatureImage;' +
+        '    applyForm(d);' +
+        '    var fd = document.getElementById("followDate");' +
+        '    if (fd && d.followDate) fd.value = d.followDate;' +
+        '    var sig = document.getElementById("signature");' +
+        '    if (sig && d.signature !== undefined) sig.value = d.signature;' +
+        '    if (typeof updateWrittenWith === "function") updateWrittenWith();' +
+        '    if (d.signatureImage && d.signatureImage !== "data:,") {' +
+        '      var sc = document.getElementById("signatureCanvas");' +
+        '      if (sc) { var si = new Image(); si.onload = function() { sc.getContext("2d").drawImage(si,0,0); }; si.src = d.signatureImage; }' +
+        '    }' +
+        '  }' +
+        '  var sigSection = document.getElementById("signatureSection");' +
+        '  if (sigSection) sigSection.style.display = "";' +
+        '});';
+    // Restore canvas in the cloned doc (img was substituted before cloneNode)
+    (function() {
+        var container = cloneDoc.querySelector('.signature-line');
+        if (!container) return;
+        var imgs = container.querySelectorAll('img[width="340"]');
+        if (!imgs.length) return;
+        var ci = imgs[0];
+        var cc = cloneDoc.createElement('canvas');
+        cc.id = 'signatureCanvas';
+        cc.width = 340;
+        cc.height = 90;
+        cc.style.cssText = ci.style.cssText;
+        ci.parentNode.replaceChild(cc, ci);
+    })();
+
+    cloneDoc.body.appendChild(restoreScript);
+
+    var htmlContent = '<!DOCTYPE html>\n' + cloneDoc.documentElement.outerHTML;
+
+    // Use original filename if opened from disk, otherwise build from data
+    var fileName = (function() {
+        if (window._originalFileName) return window._originalFileName;
+        var client     = makeSafeFileName(savedData.clientName || 'טופס');
+        var followDate = makeSafeFileName(savedData.followDate || '');
+        return [client, followDate].filter(Boolean).join(' ') + '.html';
+    })();
+
+    var blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href     = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+
+    setTimeout(function() {
+        URL.revokeObjectURL(url); a.remove();
+        formIsDirty = false;
+        // Reveal signature section now that the form is saved
+        var sigSection = document.getElementById('signatureSection');
+        if (sigSection) {
+            sigSection.style.display = '';
+            sigSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        const btn = document.getElementById('saveHtmlBtn');
+        if (btn) {
+            const orig = btn.innerHTML;
+            btn.innerHTML = '✓ נשמר!';
+            btn.style.setProperty('background', '#2e7d52', 'important');
+            setTimeout(function() {
+                btn.innerHTML = orig;
+                btn.style.removeProperty('background');
+            }, 2200);
+        }
+    }, 0);
+}
+
+    // ── WACOM Signature Pad ────────────────────────────────────────────
+    (function () {
+        var canvas  = document.getElementById('signatureCanvas');
+        if (!canvas) return;
+        var ctx     = canvas.getContext('2d');
+        var drawing = false;
+        var lastX   = 0, lastY = 0;
+        var inkColor = '#1a1aee'; // default blue
+
+        function setupCtx() {
+            ctx.strokeStyle = inkColor;
+            ctx.fillStyle   = inkColor;
+            ctx.lineWidth   = 1.8;
+            ctx.lineCap     = 'round';
+            ctx.lineJoin    = 'round';
+        }
+        setupCtx();
+
+        window.updateSignatureColor = function() {
+            inkColor = document.getElementById('signatureColor').value;
+            setupCtx();
+        };
+
+        function getPos(e) {
+            var rect = canvas.getBoundingClientRect();
+            var scaleX = canvas.width  / rect.width;
+            var scaleY = canvas.height / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top)  * scaleY
+            };
+        }
+
+        // pointerdown — start stroke, capture pointer so WACOM doesn't lose focus
+        canvas.addEventListener('pointerdown', function(e) {
+            e.preventDefault();
+            canvas.setPointerCapture(e.pointerId);
+            drawing = true;
+            var pos = getPos(e);
+            lastX = pos.x;
+            lastY = pos.y;
+            // draw a dot for tap/click
+            ctx.beginPath();
+            ctx.arc(lastX, lastY, ctx.lineWidth / 2, 0, Math.PI * 2);
+            ctx.fill();
+            formIsDirty = true;
+        });
+
+        // pointermove — draw line from last point
+        canvas.addEventListener('pointermove', function(e) {
+            if (!drawing) return;
+            e.preventDefault();
+            var pos = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            lastX = pos.x;
+            lastY = pos.y;
+        });
+
+        canvas.addEventListener('pointerup',     function(e) { drawing = false; });
+        canvas.addEventListener('pointercancel', function(e) { drawing = false; });
+
+        // clear button
+        window.clearSignatureCanvas = function() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        };
+
+        // save canvas → data URL into collectFormData
+        var _origCollect = collectFormData;
+        collectFormData = function() {
+            var d = _origCollect();
+            try { d.signatureImage = canvas.toDataURL('image/png'); } catch(ex) {}
+            return d;
+        };
+
+        // restore canvas from saved data URL when loading a saved HTML
+        var _origApply = applyForm;
+        applyForm = function(data) {
+            _origApply(data);
+            if (data && data.signatureImage && data.signatureImage !== 'data:,') {
+                window._pendingSignatureImage = data.signatureImage;
+                var img = new Image();
+                img.onload = function() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = data.signatureImage;
+            }
+        };
+        // Fallback: if applyForm was called before WACOM IIFE ran, restore now
+        setTimeout(function() {
+            var stored = window._pendingSignatureImage;
+            if (stored && stored !== 'data:,') {
+                var img = new Image();
+                img.onload = function() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = stored;
+                window._pendingSignatureImage = null;
+            }
+        }, 80);
+    })();
+
+    // ── Dirty flag & beforeunload warning ──────────────────────────────
+    var formIsDirty = false;
+
+    function collectFormData() {
+        return {
+            clientName:    document.getElementById('clientName')?.value    || '',
+            planDate:      document.getElementById('planDate')?.value      || '',
+            followDate:    document.getElementById('followDate')?.value    || '',
+            workshopGuide: document.getElementById('workshopGuide')?.value || '',
+            partnerClient:  document.getElementById('partnerClient')?.checked  || false,
+            partnerGuide:   document.getElementById('partnerGuide')?.checked   || false,
+            partnerManager: document.getElementById('partnerManager')?.checked || false,
+            extraPartner1: document.getElementById('extraPartner1')?.value || '',
+            extraPartner2: document.getElementById('extraPartner2')?.value || '',
+            signature:     document.getElementById('signature')?.value     || '',
+            goals: Array.from(document.querySelectorAll('.goal-section')).map(function(s) {
+                return {
+                    name: s.querySelector('.goalName')?.value || '',
+                    rows: Array.from(s.querySelectorAll('tbody tr')).map(function(tr) {
+                        return {
+                            target:       tr.querySelector('.target')?.value       || '',
+                            tools:        tr.querySelector('.tools')?.value        || '',
+                            partnersHelp: tr.querySelector('.partnersHelp')?.value || '',
+                            success:      tr.querySelector('.success')?.value      || ''
+                        };
+                    })
+                };
+            })
+        };
+    }
+
+    document.addEventListener('input',  function() { formIsDirty = true; });
+    document.addEventListener('change', function() { formIsDirty = true; });
+
+    window.addEventListener('beforeunload', function(e) {
+        if (formIsDirty) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+
+</script>
+</body>
+</html>
