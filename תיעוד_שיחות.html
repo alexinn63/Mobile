@@ -103,7 +103,7 @@ body {
 .field textarea {
   width:100%; padding:10px 14px; border:1.5px solid var(--border);
   border-radius:8px; font-family:inherit; font-size:14px; min-height:110px;
-  resize:vertical; background:var(--yellow-light); line-height:1.7;
+  resize:none; overflow:hidden; background:var(--yellow-light); line-height:1.7;
 }
 .field textarea:focus { outline:none; border-color:var(--yellow-dark); background:white; }
 .char-hint { font-size:11px; color:var(--muted); margin-top:3px; }
@@ -248,7 +248,7 @@ body {
         <span style="display:flex;align-items:center;gap:6px;"><span class="field-num">5</span>תוכן שיחה <span class="req">*</span></span>
         <button class="translate-btn" onclick="translateField('content', this)">🌐 תרגם לעברית</button>
       </div>
-      <textarea id="content" placeholder="תאר את תוכן השיחה... / Опиши содержание беседы..."></textarea>
+      <textarea id="content" placeholder="תאר את תוכן השיחה... / Опиши содержание беседы..." oninput="autoResize(this)"></textarea>
       <div id="content_status" style="font-size:12px;color:var(--muted);margin-top:3px;min-height:16px;"></div>
     </div>
 
@@ -258,7 +258,7 @@ body {
         <span style="display:flex;align-items:center;gap:6px;"><span class="field-num">6</span>סיכום | החלטה</span>
         <button class="translate-btn" onclick="translateField('summary', this)">🌐 תרגם לעברית</button>
       </div>
-      <textarea id="summary" placeholder="סיכום, החלטות ומעקב... / Итог, решения и последующие шаги..."></textarea>
+      <textarea id="summary" placeholder="סיכום, החלטות ומעקב... / Итог, решения и последующие шаги..." oninput="autoResize(this)"></textarea>
       <div id="summary_status" style="font-size:12px;color:var(--muted);margin-top:3px;min-height:16px;"></div>
     </div>
 
@@ -473,12 +473,66 @@ function buildPageHTML() {
   const topBar = clone.querySelector('.top-bar'); if(topBar) topBar.style.display='none';
   const sb = clone.querySelector('#statusBar'); if(sb) sb.style.display='none';
   const lp = clone.querySelector('.load-panel'); if(lp) lp.style.display='none';
+
   // Sync textareas
   ['content','summary'].forEach(id => {
     const orig = document.getElementById(id);
     const cl = clone.querySelector('#'+id);
-    if(orig && cl) cl.textContent = orig.value;
+    if(orig && cl) { cl.textContent = orig.value; cl.style.height = orig.scrollHeight + 'px'; }
   });
+
+  // Sync name input
+  const nameVal = document.getElementById('nameInput').value;
+  const clName = clone.querySelector('#nameInput');
+  if(clName) clName.setAttribute('value', nameVal);
+
+  // Sync staff select
+  const staffVal = document.getElementById('staffSelect').value;
+  const clStaff = clone.querySelector('#staffSelect');
+  if(clStaff) Array.from(clStaff.options).forEach(opt => {
+    if(opt.value === staffVal) opt.setAttribute('selected',''); else opt.removeAttribute('selected');
+  });
+
+  // Sync staffOther
+  const origOther = document.getElementById('staffOther');
+  const clOther = clone.querySelector('#staffOther');
+  if(origOther && clOther) { clOther.setAttribute('value', origOther.value); clOther.style.display = origOther.style.display; }
+
+  // Sync date
+  const origDate = document.getElementById('docDate');
+  const clDate = clone.querySelector('#docDate');
+  if(origDate && clDate) clDate.setAttribute('value', origDate.value);
+
+  // Sync date display
+  const clFDate = clone.querySelector('#fDate');
+  if(clFDate) clFDate.textContent = document.getElementById('fDate').textContent;
+
+  // Sync topic display
+  const clTopic = clone.querySelector('#topicDisplayText');
+  if(clTopic) clTopic.textContent = document.getElementById('topicDisplayText').textContent;
+
+  // Inject restore script so reopened file shows correct values
+  const restoreScript = document.createElement('script');
+  const savedStaff = staffVal;
+  const savedName  = nameVal;
+  const savedTopic = document.getElementById('topicDisplayText').textContent;
+  restoreScript.textContent = \`
+    window.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+        var s = document.getElementById('staffSelect');
+        if(s) s.value = \${JSON.stringify(savedStaff)};
+        window.selectedName  = \${JSON.stringify(savedName)};
+        window.selectedTopic = \${JSON.stringify(savedTopic)};
+        ['content','summary'].forEach(function(id) {
+          var ta = document.getElementById(id);
+          if(ta) { ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; }
+        });
+      }, 400);
+    });
+  \`;
+  const body = clone.querySelector('body');
+  if(body) body.appendChild(restoreScript);
+
   return '<!DOCTYPE html>\n' + clone.outerHTML;
 }
 function safeFileName(v) { return (v||'ללא_שם').trim().replace(/[\/:*?"<>|]/g,'-').replace(/\s+/g,'_').slice(0,60); }
@@ -530,11 +584,17 @@ function clearAll() {
   showStatus('','');
 }
 
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
 window.addEventListener('load', () => {
   document.getElementById('docDate').value = formatDate();
   document.getElementById('fDate').textContent = dateToHe(formatDate());
   renderTopics('');
   renderNameOptions('');
+  document.querySelectorAll('.field textarea').forEach(ta => autoResize(ta));
   window.addEventListener('beforeunload', e => { e.preventDefault(); e.returnValue=''; });
 });
 </script>
