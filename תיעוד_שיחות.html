@@ -513,23 +513,23 @@ function buildPageHTML() {
 
   // Inject restore script so reopened file shows correct values
   const restoreScript = document.createElement('script');
-  const savedStaff = staffVal;
-  const savedName  = nameVal;
-  const savedTopic = document.getElementById('topicDisplayText').textContent;
-  restoreScript.textContent = \`
-    window.addEventListener('DOMContentLoaded', function() {
-      setTimeout(function() {
-        var s = document.getElementById('staffSelect');
-        if(s) s.value = \${JSON.stringify(savedStaff)};
-        window.selectedName  = \${JSON.stringify(savedName)};
-        window.selectedTopic = \${JSON.stringify(savedTopic)};
-        ['content','summary'].forEach(function(id) {
-          var ta = document.getElementById(id);
-          if(ta) { ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; }
-        });
-      }, 400);
-    });
-  \`;
+  const savedStaff = JSON.stringify(staffVal);
+  const savedName  = JSON.stringify(nameVal);
+  const savedTopic = JSON.stringify(document.getElementById('topicDisplayText').textContent);
+  restoreScript.textContent = [
+    "window.addEventListener('DOMContentLoaded', function() {",
+    "  setTimeout(function() {",
+    "    var s = document.getElementById('staffSelect');",
+    "    if(s) s.value = " + savedStaff + ";",
+    "    window.selectedName  = " + savedName + ";",
+    "    window.selectedTopic = " + savedTopic + ";",
+    "    ['content','summary'].forEach(function(id) {",
+    "      var ta = document.getElementById(id);",
+    "      if(ta) { ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; }",
+    "    });",
+    "  }, 400);",
+    "});"
+  ].join('\n');
   const body = clone.querySelector('body');
   if(body) body.appendChild(restoreScript);
 
