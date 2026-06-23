@@ -221,18 +221,20 @@
   /* ── SUITABILITY SECTION ── */
   .suitability-options { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 8px; }
   .obs-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  .obs-table th { background: #1a3a5c; color: white; padding: 9px 12px; font-size: 13px; text-align: right; }
-  .obs-table td { border: 1px solid #c5d5e8; padding: 8px 10px; vertical-align: top; }
-  .obs-table tr:nth-child(even) td { background: #f4f7fc; }
+  .obs-table thead { display: none; }
+  .obs-table tr { display: block; background: white; border: 1px solid #c5d5e8; border-radius: 10px; margin-bottom: 10px; padding: 12px; }
+  .obs-table tr:nth-child(even) { background: #f8fafd; }
+  .obs-table td { display: block; border: none; padding: 4px 0; }
+  .obs-row-item { font-size: 14px; font-weight: 700; color: #1a3a5c; margin-bottom: 8px; line-height: 1.4; }
   .obs-row-item { font-size: 13px; font-weight: 500; }
-  .obs-radios { display: flex; gap: 6px; justify-content: center; }
-  .obs-radio-label { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 20px; border: 2px solid #c5d5e8; cursor: pointer; transition: all 0.15s; white-space: nowrap; color: #888; background: #f4f7fc; }
+  .obs-radios { display: flex; gap: 8px; justify-content: stretch; margin: 6px 0; }
+  .obs-radio-label { display: flex; align-items: center; justify-content: center; flex: 1; font-size: 14px; font-weight: 700; padding: 10px 6px; border-radius: 10px; border: 2px solid #c5d5e8; cursor: pointer; transition: all 0.15s; color: #888; background: #f4f7fc; text-align: center; }
   .obs-radio-label input { display: none; }
   .obs-radio-label.lo:has(input:checked)  { background: #c0392b; border-color: #c0392b; color: white; }
   .obs-radio-label.lif:has(input:checked) { background: #e67e22; border-color: #e67e22; color: white; }
   .obs-radio-label.ken:has(input:checked) { background: #1e8449; border-color: #1e8449; color: white; }
   .obs-radio-label:not(:has(input:checked)):hover { border-color: #2563a8; color: #2563a8; }
-  .obs-note { width: 100%; font-family: inherit; font-size: 12px; border: 1px solid #c5d5e8; border-radius: 6px; padding: 5px 8px; resize: none; min-height: 38px; margin-top: 4px; background: white; }
+  .obs-note { width: 100%; font-family: inherit; font-size: 14px; border: 1px solid #c5d5e8; border-radius: 8px; padding: 8px 10px; resize: none; min-height: 44px; margin-top: 6px; background: white; box-sizing: border-box; }
   .obs-note:focus { outline: none; border-color: #2563a8; }
   .suit-option { display: flex; align-items: center; gap: 8px; cursor: pointer; }
   .suit-option input[type="radio"] { accent-color: var(--blue-mid); width: 17px; height: 17px; cursor: pointer; }
@@ -1371,7 +1373,7 @@ function buildPrintDoc(d) {
   </div>
   
 <div style="position:fixed;bottom:20px;left:20px;z-index:9999;">
-  <button onclick="history.back()" style="background:linear-gradient(135deg,#1a3a5c,#2563a8);color:white;border:none;border-radius:50px;padding:12px 20px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(26,58,92,0.4);font-family:inherit;direction:rtl;">&rarr; חזרה לתפריט</button>
+  
 </div>
 </body></html>`;
 }
@@ -1742,7 +1744,7 @@ window.addEventListener('load', function() {
 </script>
 
 <div style="position:fixed;bottom:20px;left:20px;z-index:9999;">
-  <button onclick="history.back()" style="background:linear-gradient(135deg,#1a3a5c,#2563a8);color:white;border:none;border-radius:50px;padding:12px 20px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(26,58,92,0.4);font-family:inherit;direction:rtl;">&rarr; חזרה לתפריט</button>
+  
 </div>
 <script>
 /**
