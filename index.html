@@ -4,25 +4,28 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>מערכת ניהול | עמותת יחדיו</title>
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --navy:   #1a3a5c;
-    --blue:   #2563a8;
-    --gold:   #c9933a;
-    --bg:     #f4f7fc;
-    --border: #d8e6f5;
-    --white:  #ffffff;
-    --text:   #1a2a3a;
-    --muted:  #5a7a9a;
+    --navy:         #1a3a5c;
+    --blue:         #2563a8;
+    --gold:         #c9933a;
+    --bg:           #eef2f7;
+    --border:       #d0dff0;
+    --white:        #ffffff;
+    --text:         #1a2a3a;
+    --muted:        #5a7a9a;
+    --shadow-light: rgba(255,255,255,0.85);
+    --shadow-dark:  rgba(26,58,92,0.18);
+    --transition:   0.2s cubic-bezier(0.4,0,0.2,1);
   }
 
   body {
-    font-family: 'Heebo', sans-serif;
+    font-family: 'Noto Sans Hebrew', 'Heebo', Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -31,7 +34,7 @@
 
   /* ===== NAVBAR ===== */
   .navbar {
-    background: var(--navy);
+    background: linear-gradient(135deg, var(--navy) 0%, #1e4d7a 100%);
     color: var(--white);
     padding: 0 24px;
     height: 56px;
@@ -41,7 +44,7 @@
     position: sticky;
     top: 0;
     z-index: 100;
-    box-shadow: 0 2px 12px rgba(26,58,92,0.4);
+    box-shadow: 0 3px 16px rgba(26,58,92,0.35);
   }
   .navbar-brand {
     font-size: 16px;
@@ -90,7 +93,25 @@
 
   /* ===== SCREENS ===== */
   .screen { display: none; }
-  .screen.active { display: block; }
+  .screen.active {
+    display: block;
+    animation: fadeSlideIn 0.3s ease;
+  }
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Reading progress */
+  .reading-progress {
+    position: fixed; top: 0; right: 0; left: 0;
+    height: 3px; background: transparent; z-index: 9999;
+  }
+  .reading-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), var(--blue));
+    width: 0%; transition: width 0.1s linear;
+  }
 
   /* ===== MAIN MENU ===== */
   .menu-section {
@@ -99,13 +120,34 @@
     margin: 0 auto;
   }
 
+  .back-btn {
+    background: linear-gradient(135deg, var(--navy), var(--blue));
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 9px 18px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(26,58,92,0.35);
+    transition: transform var(--transition), box-shadow var(--transition);
+  }
+  .back-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(26,58,92,0.4);
+  }
+  .back-btn:active { transform: scale(0.96); }
+
   .excel-zone {
-    background: var(--white);
-    border: 1.5px solid var(--border);
-    border-radius: 16px;
+    background: var(--bg);
+    border: none;
+    border-radius: 20px;
     padding: 18px 18px 16px;
     margin-bottom: 24px;
-    box-shadow: 0 2px 10px rgba(26,58,92,0.07);
+    box-shadow:
+      6px 6px 14px var(--shadow-dark),
+      -4px -4px 10px var(--shadow-light);
   }
   .excel-zone-header {
     margin-bottom: 12px;
@@ -138,20 +180,28 @@
     margin-top: 4px;
   }
   .excel-btn-full {
-    background: #1d7a45;
+    background: linear-gradient(135deg, #1d7a45 0%, #25a05a 100%);
     color: white;
     border: none;
-    border-radius: 10px;
-    padding: 13px 0;
+    border-radius: 14px;
+    padding: 14px 0;
     width: 100%;
     font-family: inherit;
     font-size: 15px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: transform var(--transition), box-shadow var(--transition);
     letter-spacing: 0.3px;
+    box-shadow: 0 4px 14px rgba(29,122,69,0.35);
   }
-  .excel-btn-full:hover { background: #155c34; }
+  .excel-btn-full:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(29,122,69,0.45);
+  }
+  .excel-btn-full:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 8px rgba(29,122,69,0.25);
+  }
   #fileInput { display: none; }
 
   .grid {
@@ -161,23 +211,31 @@
   }
 
   .card {
-    background: var(--white);
-    border: 1.5px solid var(--border);
-    border-radius: 16px;
-    padding: 22px 16px 18px;
+    background: var(--bg);
+    border: none;
+    border-radius: 20px;
+    padding: 24px 16px 20px;
     text-align: center;
     cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
-    box-shadow: 0 2px 8px rgba(26,58,92,0.06);
+    transition: transform var(--transition), box-shadow var(--transition);
+    box-shadow:
+      6px 6px 14px var(--shadow-dark),
+      -4px -4px 10px var(--shadow-light);
     -webkit-tap-highlight-color: transparent;
     user-select: none;
   }
   .card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(37,99,168,0.15);
-    border-color: var(--blue);
+    transform: translateY(-4px);
+    box-shadow:
+      10px 10px 20px var(--shadow-dark),
+      -6px -6px 14px var(--shadow-light);
   }
-  .card:active { transform: scale(0.97); }
+  .card:active {
+    transform: scale(0.96);
+    box-shadow:
+      inset 3px 3px 8px var(--shadow-dark),
+      inset -2px -2px 6px var(--shadow-light);
+  }
 
   .card-icon {
     font-size: 36px;
@@ -193,12 +251,21 @@
   }
   .card.accent {
     background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
-    border-color: transparent;
+    border: none;
     color: white;
+    box-shadow:
+      6px 6px 16px rgba(26,58,92,0.4),
+      -3px -3px 8px rgba(255,255,255,0.15);
   }
   .card.accent .card-title { color: white; }
+  .card.accent:hover {
+    box-shadow:
+      10px 10px 22px rgba(26,58,92,0.45),
+      -4px -4px 10px rgba(255,255,255,0.2);
+  }
   .card.danger {
-    border-color: #e53e3e;
+    border: 2px solid #e53e3e;
+    background: #fff5f5;
   }
   .card.danger .card-title { color: #c53030; }
 
@@ -216,21 +283,9 @@
   }
   .dash-header h2 {
     font-size: 20px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--navy);
     flex: 1;
-  }
-  .back-btn {
-    background: linear-gradient(135deg, var(--navy), var(--blue));
-    color: white;
-    border: none;
-    border-radius: 50px;
-    padding: 9px 18px;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    box-shadow: 0 3px 10px rgba(26,58,92,0.3);
   }
 
   .stats-grid {
@@ -240,14 +295,27 @@
     margin-bottom: 16px;
   }
   .stat-card {
-    background: var(--white);
-    border: 1.5px solid var(--border);
-    border-radius: 14px;
+    background: var(--bg);
+    border: none;
+    border-radius: 18px;
     padding: 16px 14px;
-    box-shadow: 0 2px 8px rgba(26,58,92,0.05);
+    box-shadow:
+      5px 5px 12px var(--shadow-dark),
+      -3px -3px 8px var(--shadow-light);
+    transition: transform var(--transition), box-shadow var(--transition);
   }
   .stat-card.clickable { cursor: pointer; }
-  .stat-card.clickable:hover { border-color: var(--blue); }
+  .stat-card.clickable:hover {
+    transform: translateY(-3px);
+    box-shadow:
+      8px 8px 16px var(--shadow-dark),
+      -4px -4px 10px var(--shadow-light);
+  }
+  .stat-card.clickable:active {
+    box-shadow:
+      inset 3px 3px 7px var(--shadow-dark),
+      inset -2px -2px 5px var(--shadow-light);
+  }
   .stat-card.wide {
     grid-column: 1 / -1;
   }
@@ -313,7 +381,8 @@
     height: 100%;
     background: linear-gradient(90deg, var(--blue), var(--navy));
     border-radius: 6px;
-    transition: width 0.5s ease;
+    width: 0%;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .bar-count {
     font-size: 13px;
@@ -341,8 +410,15 @@
   }
   .age-bar-fill {
     height: 12px;
-    background: linear-gradient(90deg, var(--gold), #e6a84a);
+    background: linear-gradient(270deg, var(--gold), #e6a84a);
     border-radius: 6px;
+    width: 0%;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-right: auto;
+  }
+  @keyframes growFromRight {
+    from { width: 0%; }
+    to   { width: var(--target-width); }
   }
   .age-count {
     font-size: 12px;
@@ -355,29 +431,31 @@
   /* modal */
   .modal-overlay {
     position: fixed; inset: 0;
-    background: rgba(10,20,40,0.6);
+    background: rgba(10,20,40,0.65);
     z-index: 500;
     display: flex;
     align-items: flex-end;
     justify-content: center;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.25s;
+    transition: opacity 0.3s;
+    backdrop-filter: blur(4px);
   }
   .modal-overlay.open {
     opacity: 1;
     pointer-events: all;
   }
   .modal-box {
-    background: var(--white);
-    border-radius: 24px 24px 0 0;
+    background: var(--bg);
+    border-radius: 28px 28px 0 0;
     width: 100%;
     max-width: 640px;
     max-height: 70vh;
     overflow-y: auto;
-    padding: 24px 20px 40px;
-    transform: translateY(20px);
-    transition: transform 0.25s;
+    padding: 28px 20px 44px;
+    transform: translateY(30px);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 -8px 32px rgba(26,58,92,0.2);
   }
   .modal-overlay.open .modal-box { transform: translateY(0); }
   .modal-title {
@@ -425,6 +503,9 @@
 </style>
 </head>
 <body>
+
+<!-- READING PROGRESS -->
+<div class="reading-progress"><div class="reading-progress-bar" id="progressBar"></div></div>
 
 <!-- NAVBAR -->
 <nav class="navbar">
@@ -539,9 +620,10 @@
         </div>
 
         <!-- Army service -->
-        <div class="stat-card">
-          <div class="stat-label">שירות יחיד</div>
-          <div class="stat-value medium" id="d-army">—</div>
+        <div class="stat-card clickable" onclick="openModal('army')" style="background:#f0f4fa;border-color:#7090c0;">
+          <div class="stat-label" style="color:var(--navy);">שירות יחיד</div>
+          <div class="stat-value medium" id="d-army" style="color:var(--navy);">—</div>
+          <div class="stat-sub">לחץ לרשימה</div>
         </div>
 
         <!-- This month intakes -->
@@ -971,10 +1053,24 @@ function renderDashboard() {
     const pct = Math.round((count / maxInstr) * 100);
     return `<div class="instructor-row">
       <div class="instructor-name">${name}</div>
-      <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div class="bar-wrap"><div class="bar-fill" data-pct="${pct}" style="width:0%"></div></div>
       <div class="bar-count">${count}</div>
     </div>`;
   }).join('');
+
+  // Animate instructor bars left to right
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      document.querySelectorAll('.bar-fill').forEach(bar => {
+        const pct = bar.getAttribute('data-pct');
+        bar.style.width = pct + '%';
+      });
+      document.querySelectorAll('.age-bar-fill').forEach(bar => {
+        const pct = bar.getAttribute('data-pct');
+        bar.style.width = pct + '%';
+      });
+    }, 80);
+  });
 
   // Age distribution
   const nowYear2 = new Date().getFullYear();
@@ -1000,13 +1096,13 @@ function renderDashboard() {
     const pct = Math.round((g.count / maxAge) * 100);
     return `<div class="age-row">
       <div class="age-label">${g.label}</div>
-      <div class="bar-wrap"><div class="age-bar-fill" style="width:${pct}%"></div></div>
+      <div class="bar-wrap" style="direction:ltr;"><div class="age-bar-fill" data-pct="${pct}" style="width:0%;margin-right:auto;"></div></div>
       <div class="age-count">${g.count}</div>
     </div>`;
   }).join('');
 
   // Store refs for modals
-  window._dashData = { bdayClients, monthClients, yearClients };
+  window._dashData = { bdayClients, monthClients, yearClients, armyClients: clients.filter(c => String(c.army).trim() === 'כן') };
 }
 
 // ===== MODALS =====
@@ -1030,6 +1126,12 @@ function openModal(type) {
       date: c.birthdate ? c.birthdate.substring(0,5) : ''  // "DD/MM" from "DD/MM/YYYY"
     }));
     items.sort((a,b) => parseInt(a.date) - parseInt(b.date));
+  } else if (type === 'army') {
+    titleText = '🎖️ שירות יחיד';
+    items = (d.armyClients || []).map(c => ({
+      name: c.name,
+      date: c.intakeDate || ''
+    }));
   } else if (type === 'month') {
     titleText = '📥 קליטות החודש';
     items = (d.monthClients || []).map(c => ({
@@ -1071,6 +1173,16 @@ function formatDate(d) {
   if (typeof d === 'string') return d;  // already "DD/MM/YYYY"
   return `${d.getUTCDate().toString().padStart(2,'0')}/${(d.getUTCMonth()+1).toString().padStart(2,'0')}/${d.getUTCFullYear()}`;
 }
+
+// ===== SCROLL PROGRESS =====
+window.addEventListener('scroll', () => {
+  const doc = document.documentElement;
+  const scrolled = doc.scrollTop;
+  const total = doc.scrollHeight - doc.clientHeight;
+  const pct = total > 0 ? (scrolled / total) * 100 : 0;
+  const bar = document.getElementById('progressBar');
+  if (bar) bar.style.width = pct + '%';
+});
 
 // ===== INIT =====
 loadFromStorage();
