@@ -679,37 +679,76 @@ function openExternal() {
   );
 }
 
-function showMenu() {
-  document.getElementById('screen-menu').classList.add('active');
-  document.getElementById('screen-dash').classList.remove('active');
+// Внутренняя навигация: меню ↔ דשבורד.
+// Важно: системная кнопка Back на телефоне работает только через историю браузера.
+// Поэтому стартовое меню получает своё состояние, а дашборд — отдельное состояние #dashboard.
+function appBaseUrl() {
+  return location.pathname + location.search;
 }
 
-// Кнопка "חזרה לתפריט" на экране дашборда. Идёт через history.back(),
-// чтобы искусственная запись истории снималась — тогда последующий
-// аппаратный "назад" в меню ведёт себя корректно.
+function setAppScreen(screen) {
+  var menu = document.getElementById('screen-menu');
+  var dash = document.getElementById('screen-dash');
+  if (!menu || !dash) return;
+
+  if (screen === 'dash') {
+    menu.classList.remove('active');
+    dash.classList.add('active');
+    renderDashboard();
+  } else {
+    menu.classList.add('active');
+    dash.classList.remove('active');
+  }
+}
+
+function ensureInitialHistoryState() {
+  try {
+    if (!history.state || history.state.app !== 'yachdav-main') {
+      history.replaceState({ app: 'yachdav-main', screen: 'menu' }, '', appBaseUrl());
+    }
+  } catch(e) {}
+}
+
+ensureInitialHistoryState();
+
+function showMenu() {
+  setAppScreen('menu');
+  try {
+    if (!history.state || history.state.app !== 'yachdav-main') {
+      history.replaceState({ app: 'yachdav-main', screen: 'menu' }, '', appBaseUrl());
+    }
+  } catch(e) {}
+}
+
+function showDashboard() {
+  setAppScreen('dash');
+
+  // Отдельная запись истории с hash делает аппаратную кнопку Back надёжной на телефоне.
+  // Повторно не добавляем запись, если пользователь уже находится в дашборде.
+  try {
+    if (!history.state || history.state.screen !== 'dash') {
+      history.pushState({ app: 'yachdav-main', screen: 'dash' }, '', appBaseUrl() + '#dashboard');
+    }
+  } catch(e) {}
+}
+
 function backFromDashboard() {
-  if (history.state && history.state.screen === 'dash') {
-    history.back(); // вызовет popstate → showMenu()
+  // Кнопка внутри интерфейса использует ту же историю, что и системный Back.
+  // Если истории нет, просто возвращаем экран меню без выхода со страницы.
+  if (history.state && history.state.app === 'yachdav-main' && history.state.screen === 'dash') {
+    history.back();
   } else {
     showMenu();
   }
 }
 
-function showDashboard() {
-  document.getElementById('screen-menu').classList.remove('active');
-  document.getElementById('screen-dash').classList.add('active');
-  renderDashboard();
-  // Кладём запись в историю: аппаратный "назад" на дашборде вернёт в меню,
-  // а не закроет вкладку.
-  try { history.pushState({ screen: 'dash' }, '', location.href); } catch(e) {}
-}
+window.addEventListener('popstate', function(event) {
+  var state = event.state || {};
 
-// Перехват аппаратной/системной кнопки "назад".
-window.addEventListener('popstate', function() {
-  var dash = document.getElementById('screen-dash');
-  if (dash && dash.classList.contains('active')) {
-    // Открыт дашборд — вернуть в меню вместо закрытия вкладки.
-    showMenu();
+  if (state.app === 'yachdav-main' && state.screen === 'dash') {
+    setAppScreen('dash');
+  } else {
+    setAppScreen('menu');
   }
 });
 
