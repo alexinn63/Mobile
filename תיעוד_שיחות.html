@@ -213,7 +213,7 @@ body {
         <option>ליבי יוסופוב</option>
         <option>אנדרי אברמוביץ</option>
         <option>אריסטרך קפוסטה</option>
-        <option>רוץ פירוזה</option>
+        <option>רוזט פירוזה</option>
         <option>שלום מימון</option>
         <option value="אחר">אחר</option>
       </select>
@@ -355,13 +355,15 @@ function loadExcel(input) {
       allPeople.push({ name: String(r[2]).trim().replace(/\s+/g,' '), tz: r[3]||'' });
     }
     const sel = document.getElementById('personSelect');
-    sel.innerHTML = '<option value="">בחר מקבל שירות...</option>';
-    allPeople.forEach((p,i) => {
-      const o = document.createElement('option');
-      o.value = i; o.textContent = p.name;
-      sel.appendChild(o);
-    });
-    sel.disabled = false;
+    if (sel) {
+      sel.innerHTML = '<option value="">בחר מקבל שירות...</option>';
+      allPeople.forEach((p,i) => {
+        const o = document.createElement('option');
+        o.value = i; o.textContent = p.name;
+        sel.appendChild(o);
+      });
+      sel.disabled = false;
+    }
     renderNameOptions('');
   };
   reader.readAsBinaryString(file);
@@ -578,7 +580,7 @@ function clearAll() {
   document.getElementById('topicDisplayText').textContent='בחר נושא...';
   document.getElementById('content').value='';
   document.getElementById('summary').value='';
-  document.getElementById('fName').textContent='';
+  const fn = document.getElementById('fName'); if(fn) fn.textContent='';
   document.getElementById('fDate').textContent=dateToHe(formatDate());
   renderFileList();
   showStatus('','');
