@@ -580,7 +580,7 @@
 <div id="screen-dash" class="screen">
   <div class="dash-section">
     <div class="dash-header">
-      <button class="back-btn" onclick="showMenu()">→ חזרה לתפריט</button>
+      <button class="back-btn" onclick="backFromDashboard()">→ חזרה לתפריט</button>
       <h2>📈 דשבורד</h2>
     </div>
 
@@ -684,11 +684,34 @@ function showMenu() {
   document.getElementById('screen-dash').classList.remove('active');
 }
 
+// Кнопка "חזרה לתפריט" на экране дашборда. Идёт через history.back(),
+// чтобы искусственная запись истории снималась — тогда последующий
+// аппаратный "назад" в меню ведёт себя корректно.
+function backFromDashboard() {
+  if (history.state && history.state.screen === 'dash') {
+    history.back(); // вызовет popstate → showMenu()
+  } else {
+    showMenu();
+  }
+}
+
 function showDashboard() {
   document.getElementById('screen-menu').classList.remove('active');
   document.getElementById('screen-dash').classList.add('active');
   renderDashboard();
+  // Кладём запись в историю: аппаратный "назад" на дашборде вернёт в меню,
+  // а не закроет вкладку.
+  try { history.pushState({ screen: 'dash' }, '', location.href); } catch(e) {}
 }
+
+// Перехват аппаратной/системной кнопки "назад".
+window.addEventListener('popstate', function() {
+  var dash = document.getElementById('screen-dash');
+  if (dash && dash.classList.contains('active')) {
+    // Открыт дашборд — вернуть в меню вместо закрытия вкладки.
+    showMenu();
+  }
+});
 
 // ===== EXCEL LOAD =====
 let clients = [];
