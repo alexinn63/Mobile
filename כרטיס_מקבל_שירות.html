@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>כרטיס מקבל שירות</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Tahoma,Calibri,Arial,sans-serif;background:linear-gradient(145deg,#eaf2ff,#f8fafc);color:#111827}
+.app{max-width:900px;margin:auto;padding:14px}
+.hero{background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:white;border-radius:28px;padding:24px 18px;text-align:center;box-shadow:0 14px 30px rgba(15,23,42,.16);margin-bottom:14px}
+.hero h1{margin:0 0 8px;font-size:32px}.hero p{margin:0;font-size:17px;line-height:1.5}
+.panel,.person{background:white;border-radius:26px;box-shadow:0 14px 30px rgba(15,23,42,.12);margin-bottom:14px;overflow:hidden}
+.panel{padding:18px}
+label{display:block;font-size:19px;font-weight:900;color:#334155;margin:14px 0 8px}
+select,input{width:100%;min-height:58px;border:1px solid #cbd5e1;border-radius:18px;padding:14px;font-size:19px;font-family:Tahoma,Calibri,Arial,sans-serif;background:white}
+select:focus,input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.16)}
+select:disabled,input:disabled{background:#f1f5f9;color:#94a3b8}
+.people{display:grid;gap:10px;margin-top:12px;max-height:420px;overflow-y:auto}
+.personBtn{width:100%;border:1px solid #dbe3ef;background:white;border-radius:18px;padding:15px;text-align:right;font-family:Tahoma,Calibri,Arial,sans-serif;box-shadow:0 5px 14px rgba(15,23,42,.05)}
+.personBtn b{font-size:20px;color:#0f172a}.personBtn span{display:block;color:#64748b;font-size:14px;margin-top:4px}
+.empty{border:2px dashed #cbd5e1;border-radius:22px;padding:24px 16px;text-align:center;color:#64748b;background:#fbfdff;font-size:18px;line-height:1.6;margin-top:12px}
+.notice{display:none;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;border-radius:18px;padding:14px;margin-bottom:14px;line-height:1.5}
+.top{background:linear-gradient(135deg,#0f172a,#1d4ed8);color:white;padding:22px 18px}.top h2{margin:0 0 8px;font-size:32px}.meta{line-height:1.6;font-size:16px}
+.section{margin:14px;border:1px solid #dbe3ef;border-radius:22px;overflow:hidden}.section h3{margin:0;padding:14px;background:#f1f5f9;border-bottom:1px solid #dbe3ef;font-size:21px}
+.fields{display:grid;gap:10px;padding:14px}.field{background:#f8fafc;border:1px solid #edf2f7;border-radius:16px;padding:12px 13px}.field b{display:block;color:#64748b;font-size:14px;margin-bottom:5px}.field div{font-size:17px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+.pills{display:flex;gap:9px;flex-wrap:wrap;padding:14px;justify-content:center;align-items:center}.pill{border-radius:999px;padding:10px 13px;font-weight:900;background:#f1f5f9;color:#475569;white-space:nowrap;text-align:center;min-width:0}.yes{background:#ecfdf5;color:#047857}.no{background:#fef2f2;color:#b91c1c}
+.stats{display:none}
+
+.chips{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:8px;
+margin-top:12px;
+}
+.chip{
+background:#f8fafc;
+border:1px solid #e2e8f0;
+border-radius:16px;
+padding:10px 8px;
+text-align:center;
+}
+.chip strong{
+display:block;
+color:#1d4ed8;
+font-size:22px;
+line-height:1;
+margin-bottom:4px;
+}
+.chip span{
+font-size:13px;
+color:#64748b;
+line-height:1.3;
+}
+
+@media(min-width:720px){.fields{grid-template-columns:1fr 1fr}.wide{grid-column:1/-1}}
+
+.age-stats{
+  margin-top:8px;
+  display:flex;
+  gap:6px;
+  justify-content:center;
+  align-items:center;
+  flex-wrap:wrap;
+  font-size:13px;
+  color:#475569;
+  line-height:1.2;
+}
+.age-stat{
+  background:#f8fafc;
+  border:1px solid #e2e8f0;
+  border-radius:999px;
+  padding:7px 9px;
+  white-space:nowrap;
+}
+.age-stat b{
+  color:#1d4ed8;
+  font-size:13px;
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hero">
+    <h1>כרטיס מקבל שירות</h1>
+    <p>בחר קובץ Excel → בחר מדריך → בחר מקבל שירות → קבל כרטיס מסודר.</p>
+  </div>
+
+  <div class="panel">
+    <label>1. בחירת קובץ Excel</label>
+    <input id="fileInput" type="file" accept=".xlsx">
+
+    <label>2. בחירת מדריך</label>
+    <select id="guide" disabled><option value="">קודם בחר קובץ Excel</option></select>
+
+    <label>3. חיפוש מקבל שירות</label>
+    <input id="search" placeholder="אפשר לכתוב שם / משפחה / ת.ז." disabled>
+
+    <label>4. בחירת מקבל שירות</label>
+    <div id="people" class="people"><div class="empty">בחר קובץ Excel ואז מדריך.</div></div>
+    
+<div class="chips">
+  <div class="chip">
+    <strong id="totalCount">0</strong>
+    <span>אנשים בקובץ</span>
+  </div>
+
+  <div class="chip">
+    <strong id="guideCount">0</strong>
+    <span>אצל המדריך</span>
+  </div>
+
+  <div class="chip">
+    <strong id="serviceCount">0</strong>
+    <span>שירות יחיד</span>
+  </div>
+</div>
+
+<div id="ageStats" class="age-stats">
+  <span class="age-stat">עד גיל 20: <b id="ageUnder20">0</b></span>
+  <span class="age-stat">20-40: <b id="age20to40">0</b></span>
+  <span class="age-stat">40-60: <b id="age40to60">0</b></span>
+  <span class="age-stat">60-70: <b id="age60to70">0</b></span>
+  <span class="age-stat">70+: <b id="age70plus">0</b></span>
+</div>
+
+<div id="stats" class="stats"></div>
+
+  </div>
+
+  <div id="notice" class="notice"></div>
+  <main id="card"><div class="empty">כאן יופיע הכרטיס אחרי בחירת אדם.</div></main>
+</div>
+
+<script>
+let DATA = [];
+let currentPeople = [];
+
+const fileInput = document.getElementById("fileInput");
+const guideSelect = document.getElementById("guide");
+const searchInput = document.getElementById("search");
+const peopleDiv = document.getElementById("people");
+const cardDiv = document.getElementById("card");
+const noticeDiv = document.getElementById("notice");
+const statsDiv = document.getElementById("stats");
+const totalCountEl = document.getElementById("totalCount");
+const guideCountEl = document.getElementById("guideCount");
+const serviceCountEl = document.getElementById("serviceCount");
+const ageUnder20El = document.getElementById("ageUnder20");
+const age20to40El = document.getElementById("age20to40");
+const age40to60El = document.getElementById("age40to60");
+const age60to70El = document.getElementById("age60to70");
+const age70plusEl = document.getElementById("age70plus");
+
+function clean(v){return v===null||v===undefined?"":String(v).trim()}
+function esc(v){return clean(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
+function norm(v){return clean(v).toLowerCase().replace(/\s+/g," ")}
+function yes(v){return ["x","v","כן","1","yes","true"].includes(norm(v))}
+function showNotice(text){noticeDiv.style.display=text?"block":"none";noticeDiv.textContent=text||""}
+function field(label,value,wide=false){const raw=clean(value);if(!raw)return "";const v=esc(raw);return `<div class="field ${wide?"wide":""}"><b>${label}</b><div>${v}</div></div>`}
+function pill(label,value){if(!yes(value))return "";return `<span class="pill yes">${label}</span>`}
+function dateText(v){
+  if(!v)return "";
+  if(typeof v==="number" && v>1000 && v<200000){
+    const d=new Date(Math.round((v-25569)*86400*1000));
+    return d.toLocaleDateString("he-IL");
+  }
+  return clean(v);
+}
+function ageText(v){const n=Number(v);return Number.isFinite(n)&&n>0&&n<130?String(Math.floor(n)):clean(v)}
+
+function readUInt32(view, off){return view.getUint32(off,true)}
+function readUInt16(view, off){return view.getUint16(off,true)}
+
+async function inflateRaw(bytes){
+  if(!("DecompressionStream" in window)){
+    throw new Error("הדפדפן לא תומך בקריאת XLSX מקומית. נסה Chrome מעודכן.");
+  }
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function unzipXlsx(buffer){
+  const bytes = new Uint8Array(buffer);
+  const view = new DataView(buffer);
+  let eocd = -1;
+  for(let i=bytes.length-22;i>=0 && i>bytes.length-70000;i--){
+    if(readUInt32(view,i)===0x06054b50){eocd=i;break}
+  }
+  if(eocd<0) throw new Error("לא נמצא מבנה ZIP בקובץ");
+  const entries = readUInt16(view,eocd+10);
+  const cdOffset = readUInt32(view,eocd+16);
+  const files = {};
+  let off = cdOffset;
+  const dec = new TextDecoder("utf-8");
+
+  for(let i=0;i<entries;i++){
+    if(readUInt32(view,off)!==0x02014b50) break;
+    const method = readUInt16(view,off+10);
+    const compSize = readUInt32(view,off+20);
+    const uncompSize = readUInt32(view,off+24);
+    const nameLen = readUInt16(view,off+28);
+    const extraLen = readUInt16(view,off+30);
+    const commentLen = readUInt16(view,off+32);
+    const localOff = readUInt32(view,off+42);
+    const name = dec.decode(bytes.slice(off+46, off+46+nameLen));
+    files[name] = {method, compSize, uncompSize, localOff};
+    off += 46 + nameLen + extraLen + commentLen;
+  }
+
+  async function getText(name){
+    const f = files[name];
+    if(!f) return "";
+    const lo = f.localOff;
+    if(readUInt32(view,lo)!==0x04034b50) return "";
+    const nameLen = readUInt16(view,lo+26);
+    const extraLen = readUInt16(view,lo+28);
+    const start = lo + 30 + nameLen + extraLen;
+    const comp = bytes.slice(start, start + f.compSize);
+    let data;
+    if(f.method===0) data = comp;
+    else if(f.method===8) data = await inflateRaw(comp);
+    else throw new Error("שיטת דחיסה לא נתמכת: " + f.method);
+    return dec.decode(data);
+  }
+
+  return {getText, files};
+}
+
+function parseXml(text){
+  return new DOMParser().parseFromString(text, "application/xml");
+}
+function colToIndex(cellRef){
+  const m = String(cellRef).match(/[A-Z]+/i);
+  if(!m) return 0;
+  let n=0;
+  for(const ch of m[0].toUpperCase()) n = n*26 + (ch.charCodeAt(0)-64);
+  return n-1;
+}
+function getTextContent(node, tag){
+  const el = node.getElementsByTagName(tag)[0];
+  return el ? el.textContent : "";
+}
+
+async function parseXlsx(buffer){
+  const zip = await unzipXlsx(buffer);
+
+  let shared = [];
+  const sharedXml = await zip.getText("xl/sharedStrings.xml");
+  if(sharedXml){
+    const sx = parseXml(sharedXml);
+    shared = Array.from(sx.getElementsByTagName("si")).map(si =>
+      Array.from(si.getElementsByTagName("t")).map(t=>t.textContent).join("")
+    );
+  }
+
+  let sheetName = "xl/worksheets/sheet1.xml";
+  if(!zip.files[sheetName]){
+    const found = Object.keys(zip.files).find(n => n.startsWith("xl/worksheets/sheet") && n.endsWith(".xml"));
+    if(found) sheetName = found;
+  }
+
+  const sheetXml = await zip.getText(sheetName);
+  if(!sheetXml) throw new Error("לא נמצא גיליון עבודה בקובץ");
+
+  const doc = parseXml(sheetXml);
+  const rowNodes = Array.from(doc.getElementsByTagName("row"));
+  const matrix = [];
+
+  for(const row of rowNodes){
+    const out = [];
+    const cells = Array.from(row.getElementsByTagName("c"));
+    for(const c of cells){
+      const ref = c.getAttribute("r") || "";
+      const idx = colToIndex(ref);
+      const t = c.getAttribute("t") || "";
+      let value = "";
+
+      if(t === "s"){
+        const n = Number(getTextContent(c,"v"));
+        value = shared[n] ?? "";
+      } else if(t === "inlineStr"){
+        value = Array.from(c.getElementsByTagName("t")).map(x=>x.textContent).join("");
+      } else {
+        value = getTextContent(c,"v");
+        if(value !== "" && !isNaN(Number(value))) value = Number(value);
+      }
+      out[idx] = value;
+    }
+    matrix.push(out);
+  }
+  return matrix;
+}
+
+function rowToPerson(r, idx){
+  return {
+    _idx: idx,
+    num: r[1],
+    name: r[2],
+    id: r[3],
+    serviceType: r[4],
+    guide: r[5],              // עמוד F
+    healthFund: r[6],
+    doctor: r[7],
+    doctorPhone: r[8],
+    background: r[9],
+    disability: r[10],
+    address: r[11],
+    mobile: r[12],
+    homePhone: r[13],
+    birthDate: dateText(r[14]),
+    age: ageText(r[15]),
+    livesWith: r[16],
+    contactName: r[17],
+    relation: r[18],
+    contactPhone: r[19],
+    socialWorker: r[20],
+    socialPhone: r[21],
+    privateService: r[22],
+    mamad: r[23],
+    shelter: r[24],
+    none: r[25]
+  };
+}
+
+
+function updateAgeStats(list){
+  let under20 = 0;
+  let a20to40 = 0;
+  let a40to60 = 0;
+  let a60to70 = 0;
+  let a70plus = 0;
+
+  list.forEach(p => {
+    const age = Number(p.age);
+    if(!Number.isFinite(age)) return;
+
+    if(age < 20) under20++;
+    else if(age >= 20 && age < 40) a20to40++;
+    else if(age >= 40 && age < 60) a40to60++;
+    else if(age >= 60 && age < 70) a60to70++;
+    else if(age >= 70) a70plus++;
+  });
+
+  ageUnder20El.textContent = under20;
+  age20to40El.textContent = a20to40;
+  age40to60El.textContent = a40to60;
+  age60to70El.textContent = a60to70;
+  age70plusEl.textContent = a70plus;
+}
+
+function updateCounters(){
+  totalCountEl.textContent = DATA.length;
+
+  const guide = guideSelect.value;
+
+  if(!guide){
+    guideCountEl.textContent = "0";
+    const personalAll = DATA.filter(p => yes(p.privateService)).length;
+    serviceCountEl.textContent = personalAll;
+    updateAgeStats(DATA);
+    return;
+  }
+
+  if(guide === "__ALL__"){
+    guideCountEl.textContent = DATA.length;
+    const personalAll = DATA.filter(p => yes(p.privateService)).length;
+    serviceCountEl.textContent = personalAll;
+    updateAgeStats(DATA);
+    return;
+  }
+
+  guideCountEl.textContent = currentPeople.length;
+
+  const personal = currentPeople.filter(p => yes(p.privateService)).length;
+  serviceCountEl.textContent = personal;
+
+  updateAgeStats(currentPeople);
+}
+
+function loadGuides(){
+  const guides = [...new Set(DATA.map(p => clean(p.guide)).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,"he"));
+
+  guideSelect.innerHTML = `<option value="">בחר מדריך</option>` +
+    `<option value="__ALL__">כל המדריכים (${DATA.length})</option>` +
+    guides.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join("");
+
+  guideSelect.disabled = false;
+  searchInput.disabled = false;
+  searchInput.value = "";
+  peopleDiv.innerHTML = `<div class="empty">בחר מדריך מהרשימה.</div>`;
+  cardDiv.innerHTML = `<div class="empty">כאן יופיע הכרטיס אחרי בחירת אדם.</div>`;
+  updateCounters();
+
+  if(!guides.length) showNotice("לא נמצאו שמות מדריכים בעמוד F. בדוק שהשמות נמצאים בעמודה F.");
+}
+
+function renderPeople(resetCard=true){
+  const guide = guideSelect.value;
+  const q = norm(searchInput.value);
+
+  if(!guide){
+    peopleDiv.innerHTML = `<div class="empty">בחר מדריך מהרשימה.</div>`;
+    if(resetCard) cardDiv.innerHTML = `<div class="empty">כאן יופיע הכרטיס אחרי בחירת אדם.</div>`;
+    updateCounters();
+    return;
+  }
+
+  const isAll = guide === "__ALL__";
+
+  currentPeople = DATA
+    .filter(p => isAll || norm(clean(p.guide)) === norm(guide))
+    .filter(p => !q || norm([p.name,p.id,p.mobile,p.contactName].join(" ")).includes(q))
+    .sort((a,b)=>clean(a.name).localeCompare(clean(b.name),"he"));
+
+  if(resetCard) cardDiv.innerHTML = `<div class="empty">כאן יופיע הכרטיס אחרי בחירת אדם.</div>`;
+
+  if(!currentPeople.length){
+    peopleDiv.innerHTML = `<div class="empty">לא נמצאו מקבלי שירות למדריך הזה.</div>`;
+    updateCounters();
+    return;
+  }
+
+  updateCounters();
+
+  peopleDiv.innerHTML = currentPeople.map((p,i)=>`
+    <button class="personBtn" onclick="showCard(${i})">
+      <b>${esc(p.name)}</b>
+      <span>ת.ז.: ${esc(p.id)||"—"} | מס׳ בסדנה: ${esc(p.num)||"—"}${isAll ? " | " + esc(p.guide) : ""}</span>
+    </button>
+  `).join("");
+}
+
+
+function hideEmptySections(){
+  document.querySelectorAll(".section").forEach(section=>{
+    const hasField = section.querySelector(".field");
+    const hasPill = section.querySelector(".pill");
+    if(!hasField && !hasPill) section.style.display = "none";
+  });
+}
+
+function showCard(index){
+  const p = currentPeople[index];
+  if(!p) return;
+
+  // auto-select the guide if viewing "all" or a different guide
+  const personGuide = clean(p.guide);
+  if(guideSelect.value === "__ALL__" || norm(guideSelect.value) !== norm(personGuide)){
+    guideSelect.value = personGuide;
+    renderPeople(false); // re-render list for this guide, but keep card
+    updateCounters();
+  }
+
+  cardDiv.innerHTML = `
+    <article class="person">
+      <div class="top">
+        <h2>${esc(p.name)}</h2>
+        <div class="meta">מדריך: ${esc(p.guide)}</div>
+      </div>
+
+      <section class="section">
+        <h3>👤 1. פרטים אישיים</h3>
+        <div class="fields">
+          ${field("תעודת זהות", p.id)}
+          ${field("תאריך לידה", p.birthDate)}
+          ${field("גיל", p.age)}
+          ${field("כתובת", p.address, true)}
+          ${field("נייד", p.mobile)}
+          ${field("טלפון בבית", p.homePhone)}
+        </div>
+      </section>
+
+      <section class="section">
+        <h3>🏥 2. רפואה</h3>
+        <div class="fields">
+          ${field("קופת חולים", p.healthFund)}
+          ${field("רופא / סניף", p.doctor)}
+          ${field("מס׳ טלפון", p.doctorPhone)}
+          ${field("מחלות רקע", p.background, true)}
+          ${field("מוגבלות", p.disability, true)}
+        </div>
+      </section>
+
+      <section class="section">
+        <h3>🏠 3. מגורים ואיש קשר</h3>
+        <div class="fields">
+          ${field("מתגורר עם", p.livesWith)}
+          ${field("איש קשר", p.contactName)}
+          ${field("קירבה", p.relation)}
+          ${field("טלפון איש קשר", p.contactPhone)}
+        </div>
+        <div class="pills">
+          ${pill("מקלט", p.shelter)}
+          ${pill('ממ״ד', p.mamad)}
+          ${pill("ללא מיגון", p.none)}
+        </div>
+      </section>
+
+      <section class="section">
+        <h3>🤝 4. פרטי עו״ס</h3>
+        <div class="fields">
+          ${field("שם עובד/ת סוציאלי/ת", p.socialWorker)}
+          ${field("מס׳ טלפון", p.socialPhone)}
+          ${field("שירות יחיד", p.privateService, true)}
+          ${field("סוג שירות", p.serviceType)}
+        </div>
+      </section>
+    </article>`;
+  hideEmptySections();
+  cardDiv.scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+fileInput.addEventListener("change", async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+
+  showNotice("");
+  statsDiv.textContent = "";
+  peopleDiv.innerHTML = `<div class="empty">קורא את הקובץ...</div>`;
+  cardDiv.innerHTML = `<div class="empty">קורא את הקובץ...</div>`;
+
+  try{
+    const buf = await file.arrayBuffer();
+    const matrix = await parseXlsx(buf);
+
+    DATA = matrix.slice(1)
+      .map((r,idx)=>rowToPerson(r,idx))
+      .filter(p=>clean(p.name)||clean(p.guide));
+
+    showNotice("");
+    loadGuides();
+  }catch(err){
+    console.error(err);
+    showNotice("לא הצלחתי לקרוא את הקובץ. ודא שזה קובץ Excel תקין מסוג xlsx ונסה שוב.");
+    peopleDiv.innerHTML = `<div class="empty">שגיאה בקריאת הקובץ.</div>`;
+    cardDiv.innerHTML = `<div class="empty">שגיאה בקריאת הקובץ.</div>`;
+  }
+});
+
+guideSelect.addEventListener("change", ()=>renderPeople(true));
+searchInput.addEventListener("input", ()=>renderPeople(true));
+
+// ── AUTO-LOAD EXCEL FROM MAIN MENU ──────────────────────────────────────────
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    try {
+      var raw = localStorage.getItem('rehab_excel_raw_v1');
+      if (!raw) return;
+      var parsed = JSON.parse(raw);
+      var binary = atob(parsed.base64);
+      var bytes = new Uint8Array(binary.length);
+      for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      var file = new File([bytes], parsed.fileName || 'מחלות_רקע.xlsx');
+      var inp = document.getElementById('fileInput');
+      if (inp) {
+        var dt = new DataTransfer();
+        dt.items.add(file);
+        inp.files = dt.files;
+        inp.dispatchEvent(new Event('change'));
+        // Hide file input row only after successful load
+        setTimeout(function() {
+          var label = inp.previousElementSibling;
+          if (label && label.tagName === 'LABEL') label.style.display = 'none';
+          inp.style.display = 'none';
+        }, 1000);
+      }
+    } catch(e) { console.log('auto-load:', e); }
+  }, 600);
+});
+</script>
+
+<div style="position:fixed;bottom:20px;left:20px;z-index:9999;">
+  <button onclick="history.back()" style="background:linear-gradient(135deg,#1a3a5c,#2563a8);color:white;border:none;border-radius:50px;padding:12px 20px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(26,58,92,0.4);font-family:inherit;direction:rtl;">&rarr; חזרה לתפריט</button>
+</div>
+</body>
+</html>
