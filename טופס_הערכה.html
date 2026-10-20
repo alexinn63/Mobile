@@ -687,6 +687,8 @@
       <div class="excel-loader">
         <span style="font-size:20px;line-height:1">📋</span>
         <span id="excel_status" class="excel-status">בודק בסיס נתונים משותף... אפשר למלא ידנית גם אם לא נטען Excel.</span>
+        <button type="button" class="btn-excel" onclick="document.getElementById('excel_file_input').click()">📎 צרף קובץ Excel</button>
+        <input type="file" id="excel_file_input" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none" onchange="onExcelFilePicked(this)">
       </div>
       <div class="field-group">
         <label class="req">תאריך</label>
@@ -874,7 +876,9 @@ function normalizeSharedClient(c) {
 
 function loadClientsFromSharedStorage() {
   try {
-    const raw = localStorage.getItem('rehab_excel_clients_v1');
+    // In a sandboxed viewer (e.g. a phone file preview) localStorage may be blocked — that is not a data error
+    let raw = null;
+    try { raw = localStorage.getItem('rehab_excel_clients_v1'); } catch (e) { raw = null; }
     if (!raw) {
       CLIENTS = [];
       updateClientNameOptions('');
@@ -919,6 +923,133 @@ function getClientMatches(query, limit = 80) {
     // Searches any part of full name: first name, surname, or middle words.
     return parts.every(part => n.includes(part));
   }).slice(0, limit);
+}
+
+// ──────────────────────────────────────────
+// ATTACH EXCEL MANUALLY (works on phone too) — SheetJS + JSZip in parallel,
+// the result with more recognized names wins (SheetJS alone is unreliable with Hebrew on Android).
+// ──────────────────────────────────────────
+function loadScriptOnce(src, globalName) {
+  return new Promise((res, rej) => {
+    if (window[globalName]) return res();
+    const s = document.createElement('script');
+    s.src = src; s.onload = () => res(); s.onerror = () => rej(new Error('לא ניתן לטעון ' + globalName + ' (אין אינטרנט?)'));
+    document.head.appendChild(s);
+  });
+}
+
+function xlColToIndex(ref) {
+  const letters = String(ref || '').replace(/[^A-Z]/gi, '').toUpperCase();
+  let n = 0;
+  for (let i = 0; i < letters.length; i++) n = n * 26 + (letters.charCodeAt(i) - 64);
+  return n - 1;
+}
+
+async function parseRowsSheetJS(buf) {
+  await loadScriptOnce('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js', 'XLSX');
+  const wb = XLSX.read(buf, { type: 'array', cellDates: false, raw: true });
+  return wb.SheetNames.map(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '', blankrows: false, raw: true }));
+}
+
+async function parseRowsJSZip(buf) {
+  await loadScriptOnce('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js', 'JSZip');
+  const zip = await JSZip.loadAsync(buf);
+  const dp = new DOMParser();
+  const xml = async path => { const f = zip.file(path); return f ? dp.parseFromString(await f.async('string'), 'application/xml') : null; };
+  const shared = [];
+  const ss = await xml('xl/sharedStrings.xml');
+  if (ss) Array.from(ss.getElementsByTagName('si')).forEach(si => {
+    shared.push(Array.from(si.getElementsByTagName('t')).map(t => t.textContent).join(''));
+  });
+  const sheetFiles = Object.keys(zip.files).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n))
+    .sort((a, b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+  const sheets = [];
+  for (const path of sheetFiles) {
+    const doc = await xml(path);
+    const rows = [];
+    Array.from(doc.getElementsByTagName('row')).forEach(rowEl => {
+      const row = [];
+      Array.from(rowEl.getElementsByTagName('c')).forEach(c => {
+        const idx = xlColToIndex(c.getAttribute('r'));
+        const t = c.getAttribute('t');
+        const vEl = c.getElementsByTagName('v')[0];
+        let v = vEl ? vEl.textContent : '';
+        if (t === 's') v = shared[parseInt(v, 10)] || '';
+        else if (t === 'inlineStr') v = Array.from(c.getElementsByTagName('t')).map(x => x.textContent).join('');
+        if (idx >= 0) row[idx] = v;
+      });
+      for (let i = 0; i < row.length; i++) if (row[i] === undefined) row[i] = '';
+      if (row.some(x => String(x).trim())) rows.push(row);
+    });
+    sheets.push(rows);
+  }
+  return sheets;
+}
+
+// Find header row with a name column and an ID column; return [{name,id}]
+function extractClientsFromRows(rows) {
+  const norm = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+  const isId = h => /ת\.?\s*ז|תעודת\s*זהות|מספר\s*זהות|^ת"ז$/.test(h);
+  for (let r = 0; r < Math.min(rows.length, 20); r++) {
+    const hdr = (rows[r] || []).map(norm);
+    const idCol = hdr.findIndex(isId);
+    let nameCol = hdr.findIndex(h => /שם/.test(h) && !/פרטי|משפחה|מדריך|אב|אם|בנק|סניף|קופ|רופא|עו"ס|אפוטרופוס|מסגרת/.test(h));
+    const firstCol = hdr.findIndex(h => /שם\s*פרטי/.test(h));
+    const lastCol = hdr.findIndex(h => /שם\s*משפחה/.test(h));
+    if (nameCol < 0 && !(firstCol >= 0 && lastCol >= 0)) continue;
+    const out = [];
+    const seen = new Set();
+    for (let i = r + 1; i < rows.length; i++) {
+      const row = rows[i] || [];
+      let name = nameCol >= 0 ? norm(row[nameCol]) : (norm(row[lastCol]) + ' ' + norm(row[firstCol])).trim();
+      if (!name || /^\d+$/.test(name)) continue;
+      const id = idCol >= 0 ? normalizeId(row[idCol]) : '';
+      const key = name + '|' + id;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ name, id });
+    }
+    if (out.length) return out;
+  }
+  return [];
+}
+
+function bestClientsFromSheets(sheets) {
+  let best = [];
+  (sheets || []).forEach(rows => {
+    const list = extractClientsFromRows(rows);
+    const score = list.length + list.filter(c => c.id).length;   // names + IDs recognized
+    const bestScore = best.length + best.filter(c => c.id).length;
+    if (score > bestScore) best = list;
+  });
+  return best;
+}
+
+async function onExcelFilePicked(input) {
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file) return;
+  setExcelStatus('קורא את הקובץ ' + file.name + '...', '');
+  try {
+    const buf = await file.arrayBuffer();
+    const [a, b] = await Promise.allSettled([parseRowsSheetJS(buf), parseRowsJSZip(buf)]);
+    const fromSheetJS = a.status === 'fulfilled' ? bestClientsFromSheets(a.value) : [];
+    const fromZip     = b.status === 'fulfilled' ? bestClientsFromSheets(b.value) : [];
+    const sc = l => l.length + l.filter(c => c.id).length;
+    const list = sc(fromZip) > sc(fromSheetJS) ? fromZip : fromSheetJS;
+    if (!list.length) {
+      const why = (a.status === 'rejected' && b.status === 'rejected') ? (a.reason && a.reason.message) : 'לא נמצאו עמודות "שם" ו"ת.ז" בקובץ';
+      setExcelStatus('לא נטענו שמות: ' + why + '. אפשר למלא ידנית.', 'error');
+      return;
+    }
+    CLIENTS = list;
+    LAST_EXCEL_FILE_NAME = file.name;
+    updateClientNameOptions('');
+    setExcelStatus(`נטען ${file.name} — ${CLIENTS.length} מקבלי שירות זמינים. התחל להקליד שם או ת.ז.`, 'ok');
+  } catch (err) {
+    console.error(err);
+    setExcelStatus('שגיאה בקריאת הקובץ: ' + err.message + '. אפשר למלא ידנית.', 'error');
+  }
 }
 
 function updateClientNameOptions(query) {
@@ -1540,6 +1671,14 @@ function showStepPanel(filename, subject, body) {
   document.body.appendChild(panel);
 }
 
+function showToast(msg, ms) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a3a5c;color:#fff;padding:10px 18px;border-radius:10px;font:600 14px Heebo,Arial,sans-serif;direction:rtl;z-index:10000;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:92vw;text-align:center;';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), ms || 6000);
+}
+
 function openMailAndClose(encSubject, encBody) {
   document.getElementById('_step_panel').remove();
   window.location.href = `mailto:${EMAIL_TO}?cc=${EMAIL_CC}&subject=${decodeURIComponent(encSubject)}&body=${decodeURIComponent(encBody)}`;
@@ -1629,7 +1768,14 @@ async function sendEmail() {
 בברכה`;
 
     if (navigator.canShare && navigator.canShare({ files: shareFiles }) && navigator.share) {
-      await navigator.share({ files: shareFiles, title: subject, text: body });
+      // Share sheet cannot pre-fill recipients — copy Alex + Libi addresses so they can be pasted (Ctrl+V)
+      try { navigator.clipboard && navigator.clipboard.writeText(EMAIL_TO + '; ' + EMAIL_CC).catch(function(){}); } catch (e) {}
+      showToast('📋 הכתובות של אלכס וליבי הועתקו — במייל הדבק בשדה "אל" (Ctrl+V)', 8000);
+      try {
+        await navigator.share({ files: shareFiles, title: subject, text: body });
+      } catch (err) {
+        if (!err || err.name !== 'AbortError') throw err;
+      }
       return;
     }
 
@@ -2025,6 +2171,10 @@ function buildAllStaffSelect(selectEl, includeEmpty = true, extraOptions = []) {
 // החלפת לוגואים בכל הטפסים
 function fillLogos() {
   // לוגו עמותה
+  // Broken / unreachable logo → hide it instead of showing a broken-image icon with alt text
+  document.querySelectorAll('[data-logo]').forEach(img => {
+    img.onerror = function() { this.style.display = 'none'; };
+  });
   document.querySelectorAll('[data-logo="org"]').forEach(img => {
     img.src    = ORG_CONFIG.files.logoOrg;
     img.style.height = img.dataset.logoHeight || ORG_CONFIG.logoSizes.orgHeight;
