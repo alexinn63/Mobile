@@ -62,19 +62,11 @@
   .btn-email:hover { background: #b07d2c; }
   .btn-clear { background: transparent; color: #9bb8d4; border: 1px solid #4a6a88; font-size: 12px; padding: 6px 12px; }
   .btn-clear:hover { background: rgba(255,255,255,0.08); }
-  .btn-pdf { background: #b8323a; color: white; }
-  .btn-pdf:hover { background: #962830; }
-  .btn-pdf:disabled { background: #c98a8e; cursor: not-allowed; }
-  .draft-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: #fff8e6; border: 1.5px solid #e8c56a; border-radius: 8px; padding: 10px 12px; margin-bottom: 16px; font-size: 13px; color: #6b4e00; }
-  .draft-banner strong { color: #4a3600; }
-  .draft-banner .db-actions { display: flex; gap: 8px; margin-inline-start: auto; }
-  .draft-banner button { font-family: inherit; font-size: 13px; font-weight: 700; border: none; border-radius: 6px; padding: 7px 14px; cursor: pointer; }
-  .draft-banner .db-restore { background: var(--blue-mid); color: #fff; }
-  .draft-banner .db-discard { background: #eef2f7; color: #555; }
-  .draft-saved-hint { font-size: 11px; color: var(--muted); text-align: center; margin-top: 4px; min-height: 14px; }
   .btn-save-html { background: var(--green); color: white; }
   .btn-save-html:hover { background: #235f3e; }
   .btn-save-html:disabled { background: #5a9d78; cursor: not-allowed; }
+  .btn-pdf { background: #7c3aed; color: white; }
+  .btn-pdf:hover { background: #5b21b6; }
 
   /* ── PAGE WRAPPER ── */
   .page {
@@ -635,6 +627,10 @@
     .field-group input { background: white; border: 1px solid #ccc; }
     .section { page-break-inside: avoid; }
     .rating-table { page-break-inside: avoid; }
+    /* כותרת סעיף לא נשארת לבדה בסוף העמוד */
+    .section-title { break-after: avoid; page-break-after: avoid; }
+    .textarea-block { break-inside: avoid; page-break-inside: avoid; }
+    .section-title + .textarea-block, .section-title + table { break-before: avoid; }
   }
 
   /* ── SPINNER ── */
@@ -647,17 +643,6 @@
     /* Russian subtitle: take the space from the gap under the question, not from the card */
     .rating-table td:first-child { margin-bottom: 0; line-height: 1.2; }
     .rating-table td:first-child .ru-sub { margin-top: 0; line-height: 1.1; }
-  }
-  @media (max-width: 720px) {
-    /* 4 buttons → 2×2 grid */
-    .top-bar-actions .btn-clear { grid-column: auto; }
-    .draft-banner .db-actions { width: 100%; margin-inline-start: 0; }
-    .draft-banner .db-actions button { flex: 1; min-height: 40px; }
-  }
-  @media print {
-    .draft-banner, .draft-saved-hint { display: none !important; }
-    .section-title { break-after: avoid; page-break-after: avoid; }
-    .textarea-block { break-inside: avoid; page-break-inside: avoid; }
   }
 </style>
 </head>
@@ -680,7 +665,7 @@
   <div class="top-bar-actions">
     <button class="btn btn-clear" onclick="clearForm()">✕ נקה</button>
     <button type="button" class="btn btn-save-html" id="btnSaveHtml" onclick="saveAsHtml()">💾 שמירה כ-HTML</button>
-    <button type="button" class="btn btn-pdf" id="btnSavePdf" onclick="saveAsPdf()">📄 שמור PDF</button>
+    <button type="button" class="btn btn-pdf" id="btnSavePdf" onclick="saveAsPdf()">📄 שמירה כ-PDF</button>
     <button type="button" class="btn btn-email" onclick="sendEmail()">✉ שלח במייל</button>
   </div>
 </div>
@@ -701,8 +686,6 @@
   </div>
 
   <form id="evaluationForm"><div class="form-body">
-    <div id="draft_banner_slot"></div>
-    <div id="draft_saved_hint" class="draft-saved-hint"></div>
     <datalist id="note-options"><option value="לא רלבנטי"></option></datalist>
     <datalist id="client-name-options"></datalist>
 
@@ -710,8 +693,7 @@
     <div class="meta-grid">
       <div class="excel-loader">
         <span style="font-size:20px;line-height:1">📋</span>
-        <span id="excel_status" class="excel-status" onclick="document.getElementById('excel_file_input').click()" style="cursor:pointer" title="לחיצה — טעינת קובץ Excel ידנית">בודק בסיס נתונים משותף... אפשר למלא ידנית גם אם לא נטען Excel.</span>
-        <input type="file" id="excel_file_input" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none" onchange="onExcelFilePicked(this)">
+        <span id="excel_status" class="excel-status">בודק בסיס נתונים משותף... אפשר למלא ידנית גם אם לא נטען Excel.</span>
       </div>
       <div class="field-group">
         <label class="req">תאריך</label>
@@ -899,9 +881,7 @@ function normalizeSharedClient(c) {
 
 function loadClientsFromSharedStorage() {
   try {
-    // In a sandboxed viewer (e.g. a phone file preview) localStorage may be blocked — that is not a data error
-    let raw = null;
-    try { raw = localStorage.getItem('rehab_excel_clients_v1'); } catch (e) { raw = null; }
+    const raw = localStorage.getItem('rehab_excel_clients_v1');
     if (!raw) {
       CLIENTS = [];
       updateClientNameOptions('');
@@ -946,133 +926,6 @@ function getClientMatches(query, limit = 80) {
     // Searches any part of full name: first name, surname, or middle words.
     return parts.every(part => n.includes(part));
   }).slice(0, limit);
-}
-
-// ──────────────────────────────────────────
-// ATTACH EXCEL MANUALLY (works on phone too) — SheetJS + JSZip in parallel,
-// the result with more recognized names wins (SheetJS alone is unreliable with Hebrew on Android).
-// ──────────────────────────────────────────
-function loadScriptOnce(src, globalName) {
-  return new Promise((res, rej) => {
-    if (window[globalName]) return res();
-    const s = document.createElement('script');
-    s.src = src; s.onload = () => res(); s.onerror = () => rej(new Error('לא ניתן לטעון ' + globalName + ' (אין אינטרנט?)'));
-    document.head.appendChild(s);
-  });
-}
-
-function xlColToIndex(ref) {
-  const letters = String(ref || '').replace(/[^A-Z]/gi, '').toUpperCase();
-  let n = 0;
-  for (let i = 0; i < letters.length; i++) n = n * 26 + (letters.charCodeAt(i) - 64);
-  return n - 1;
-}
-
-async function parseRowsSheetJS(buf) {
-  await loadScriptOnce('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js', 'XLSX');
-  const wb = XLSX.read(buf, { type: 'array', cellDates: false, raw: true });
-  return wb.SheetNames.map(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '', blankrows: false, raw: true }));
-}
-
-async function parseRowsJSZip(buf) {
-  await loadScriptOnce('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js', 'JSZip');
-  const zip = await JSZip.loadAsync(buf);
-  const dp = new DOMParser();
-  const xml = async path => { const f = zip.file(path); return f ? dp.parseFromString(await f.async('string'), 'application/xml') : null; };
-  const shared = [];
-  const ss = await xml('xl/sharedStrings.xml');
-  if (ss) Array.from(ss.getElementsByTagName('si')).forEach(si => {
-    shared.push(Array.from(si.getElementsByTagName('t')).map(t => t.textContent).join(''));
-  });
-  const sheetFiles = Object.keys(zip.files).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n))
-    .sort((a, b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
-  const sheets = [];
-  for (const path of sheetFiles) {
-    const doc = await xml(path);
-    const rows = [];
-    Array.from(doc.getElementsByTagName('row')).forEach(rowEl => {
-      const row = [];
-      Array.from(rowEl.getElementsByTagName('c')).forEach(c => {
-        const idx = xlColToIndex(c.getAttribute('r'));
-        const t = c.getAttribute('t');
-        const vEl = c.getElementsByTagName('v')[0];
-        let v = vEl ? vEl.textContent : '';
-        if (t === 's') v = shared[parseInt(v, 10)] || '';
-        else if (t === 'inlineStr') v = Array.from(c.getElementsByTagName('t')).map(x => x.textContent).join('');
-        if (idx >= 0) row[idx] = v;
-      });
-      for (let i = 0; i < row.length; i++) if (row[i] === undefined) row[i] = '';
-      if (row.some(x => String(x).trim())) rows.push(row);
-    });
-    sheets.push(rows);
-  }
-  return sheets;
-}
-
-// Find header row with a name column and an ID column; return [{name,id}]
-function extractClientsFromRows(rows) {
-  const norm = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
-  const isId = h => /ת\.?\s*ז|תעודת\s*זהות|מספר\s*זהות|^ת"ז$/.test(h);
-  for (let r = 0; r < Math.min(rows.length, 20); r++) {
-    const hdr = (rows[r] || []).map(norm);
-    const idCol = hdr.findIndex(isId);
-    let nameCol = hdr.findIndex(h => /שם/.test(h) && !/פרטי|משפחה|מדריך|אב|אם|בנק|סניף|קופ|רופא|עו"ס|אפוטרופוס|מסגרת/.test(h));
-    const firstCol = hdr.findIndex(h => /שם\s*פרטי/.test(h));
-    const lastCol = hdr.findIndex(h => /שם\s*משפחה/.test(h));
-    if (nameCol < 0 && !(firstCol >= 0 && lastCol >= 0)) continue;
-    const out = [];
-    const seen = new Set();
-    for (let i = r + 1; i < rows.length; i++) {
-      const row = rows[i] || [];
-      let name = nameCol >= 0 ? norm(row[nameCol]) : (norm(row[lastCol]) + ' ' + norm(row[firstCol])).trim();
-      if (!name || /^\d+$/.test(name)) continue;
-      const id = idCol >= 0 ? normalizeId(row[idCol]) : '';
-      const key = name + '|' + id;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push({ name, id });
-    }
-    if (out.length) return out;
-  }
-  return [];
-}
-
-function bestClientsFromSheets(sheets) {
-  let best = [];
-  (sheets || []).forEach(rows => {
-    const list = extractClientsFromRows(rows);
-    const score = list.length + list.filter(c => c.id).length;   // names + IDs recognized
-    const bestScore = best.length + best.filter(c => c.id).length;
-    if (score > bestScore) best = list;
-  });
-  return best;
-}
-
-async function onExcelFilePicked(input) {
-  const file = input.files && input.files[0];
-  input.value = '';
-  if (!file) return;
-  setExcelStatus('קורא את הקובץ ' + file.name + '...', '');
-  try {
-    const buf = await file.arrayBuffer();
-    const [a, b] = await Promise.allSettled([parseRowsSheetJS(buf), parseRowsJSZip(buf)]);
-    const fromSheetJS = a.status === 'fulfilled' ? bestClientsFromSheets(a.value) : [];
-    const fromZip     = b.status === 'fulfilled' ? bestClientsFromSheets(b.value) : [];
-    const sc = l => l.length + l.filter(c => c.id).length;
-    const list = sc(fromZip) > sc(fromSheetJS) ? fromZip : fromSheetJS;
-    if (!list.length) {
-      const why = (a.status === 'rejected' && b.status === 'rejected') ? (a.reason && a.reason.message) : 'לא נמצאו עמודות "שם" ו"ת.ז" בקובץ';
-      setExcelStatus('לא נטענו שמות: ' + why + '. אפשר למלא ידנית.', 'error');
-      return;
-    }
-    CLIENTS = list;
-    LAST_EXCEL_FILE_NAME = file.name;
-    updateClientNameOptions('');
-    setExcelStatus(`נטען ${file.name} — ${CLIENTS.length} מקבלי שירות זמינים. התחל להקליד שם או ת.ז.`, 'ok');
-  } catch (err) {
-    console.error(err);
-    setExcelStatus('שגיאה בקריאת הקובץ: ' + err.message + '. אפשר למלא ידנית.', 'error');
-  }
 }
 
 function updateClientNameOptions(query) {
@@ -1251,7 +1104,7 @@ function buildTable(tbodyId, items, itemsRu) {
           </div>
         </td>
       `).join('')}
-      <td><input type="text" class="note-input" id="${prefix}_note" list="note-options" placeholder="הערה... / לא רלבנטי"></td>
+      <td><input type="text" class="note-input" id="${prefix}_note" list="note-options" placeholder="הערה... / לא רלבנטי (חובה)"></td>
     `;
     tbody.appendChild(tr);
   });
@@ -1426,12 +1279,8 @@ function formatWageField() {
 
 
 // ──────────────────────────────────────────
-// REQUIRED: all fields before section ח (meta, א–ד ratings, ה/ו/ז). Notes (הערות) are optional.
+// REQUIRED: all fields before section ח (meta, א–ד ratings + notes, ה/ו/ז)
 // ──────────────────────────────────────────
-function isNotRelevantNote(v) {
-  return /לא\s*רל(?:ב|ו{1,2})נטי/.test(String(v || ''));   // לא רלבנטי / לא רלוונטי / לא רלוונטית
-}
-
 function validateRequiredBeforeH() {
   document.querySelectorAll('#evaluationForm .field-error').forEach(el => el.classList.remove('field-error'));
   document.querySelectorAll('tr.row-missing').forEach(tr => tr.classList.remove('row-missing'));
@@ -1451,11 +1300,13 @@ function validateRequiredBeforeH() {
       const prefix = `table_${tbl}_${i}`;
       const note = document.getElementById(prefix + '_note');
       const tr = note ? note.closest('tr') : null;
-      // "לא רלבנטי" in the note counts as answered — no score needed for this row
-      if (!document.querySelector(`input[name="${prefix}"]:checked`) && !isNotRelevantNote(note && note.value)) {
+      const checked = document.querySelector(`input[name="${prefix}"]:checked`);
+      // "לא רלבנטי" בהערה = השורה נחשבת מלאה גם בלי דירוג 1/2/3
+      if (!checked && !isNotRelevant(note ? note.value : '')) {
         noScore++;
         if (tr) { tr.classList.add('row-missing'); if (!firstEl) firstEl = tr; }
       }
+      // הערות (הערת מדריך) אינן שדה חובה — אין לסמן אותן ולא לחסום שמירה בגללן
     });
     if (noScore) missing.push(`${secNames[tbl]} — חסר דירוג ב-${noScore} שורות`);
   });
@@ -1470,13 +1321,6 @@ function validateRequiredBeforeH() {
   alert('יש למלא את כל השדות המסומנים ב-* לפני שמירה או שליחה.\n\nחסר:\n- ' + missing.join('\n- '));
   return false;
 }
-
-document.addEventListener('input', function(e) {
-  if (e.target && e.target.classList && e.target.classList.contains('note-input') && isNotRelevantNote(e.target.value)) {
-    const tr = e.target.closest('tr.row-missing');
-    if (tr) tr.classList.remove('row-missing');
-  }
-});
 
 document.addEventListener('change', function(e) {
   if (e.target && e.target.type === 'radio') {
@@ -1626,12 +1470,11 @@ function buildPrintDoc(d) {
   Object.entries(d.ratings).forEach(([tbl, rows]) => {
     const rowsHtml = rows.map((r, idx) => {
       const sc = r.score || '–';
-      const na = sc === '–' && isNotRelevantNote(r.note);      // "לא רלבנטי" instead of a score
       const bg = idx % 2 === 0 ? '#fff' : '#eef4fb';
       return `<tr style="background:${bg}">
         <td style="padding:5px 9px;border:1px solid #c5d5e8;font-size:11.8px;">${r.item}</td>
-        <td style="padding:5px 9px;border:1px solid #c5d5e8;text-align:center;font-weight:bold;color:${na ? '#9aa4b2' : scoreColor[sc]};font-size:12.8px;">${na ? 'לא רלבנטי' : scoreLabel[sc]}</td>
-        <td style="padding:5px 9px;border:1px solid #c5d5e8;font-size:11.8px;color:#555;">${na ? '' : escapeHtml(r.note || '')}</td>
+        <td style="padding:5px 9px;border:1px solid #c5d5e8;text-align:center;font-weight:bold;color:${scoreColor[sc]};font-size:12.8px;">${scoreLabel[sc]}</td>
+        <td style="padding:5px 9px;border:1px solid #c5d5e8;font-size:11.8px;color:#555;">${r.note||''}</td>
       </tr>`;
     }).join('');
     tables += `${tbl === 'd' ? '<div style="height:140px;"></div><div style="break-before:page;page-break-before:always;height:1px;"></div>' : ''}<h3 style="color:#1a3a5c;font-size:13px;margin:18px 0 7px;border-bottom:2px solid #2563a8;padding-bottom:3px;">${sectionNames[tbl]}</h3>
@@ -1698,8 +1541,7 @@ function showStepPanel(filename, subject, body) {
         <div style="display:flex;align-items:flex-start;gap:10px;"><div style="background:#2563a8;color:white;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">1</div><div style="font-size:13px;padding-top:3px;">לחץ על <strong>פתח מייל</strong></div></div>
         <div style="display:flex;align-items:flex-start;gap:10px;"><div style="background:#2563a8;color:white;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">2</div><div style="font-size:13px;padding-top:3px;">צרף ידנית את שני הקבצים מתיקיית ההורדות</div></div>
         <div style="display:flex;align-items:flex-start;gap:10px;"><div style="background:#2563a8;color:white;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">3</div><div style="font-size:13px;padding-top:3px;">שלח את המייל</div></div>
-      </div>
-      <div style="display:flex;gap:10px;">
+      </div><div style="display:flex;gap:10px;">
         <button onclick="openMailAndClose('${encodeURIComponent(subject)}','${encodeURIComponent(body)}')" style="flex:1;background:#2563a8;color:white;border:none;padding:11px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">📧 פתח מייל</button>
         <button onclick="document.getElementById('_step_panel').remove()" style="flex:0 0 auto;background:#eef2f7;color:#555;border:none;padding:11px 16px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;">סגור</button>
       </div>
@@ -1707,40 +1549,11 @@ function showStepPanel(filename, subject, body) {
   document.body.appendChild(panel);
 }
 
-function showShareRetryPanel(shareFiles, subject, body, htmlFiles, err) {
-  const old = document.getElementById('_step_panel');
-  if (old) old.remove();
-  window._retryShare = { shareFiles, subject, body, htmlFiles };
-  const panel = document.createElement('div');
-  panel.id = '_step_panel';
-  panel.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;';
-  panel.innerHTML = `
-    <div style="width:min(92vw,440px);background:white;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.28);padding:22px 24px;font-family:Heebo,Arial,sans-serif;direction:rtl;color:#1e2535;text-align:center;">
-      <div style="font-size:18px;font-weight:800;color:#1a3a5c;margin-bottom:10px;">הקבצים מוכנים לשליחה</div>
-      <button type="button" onclick="retryShareNow()" style="width:100%;background:#c9933a;color:white;border:none;padding:13px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;">✉ בחר איך לשלוח</button>
-      <button type="button" onclick="document.getElementById('_step_panel').remove()" style="width:100%;background:#eef2f7;color:#555;border:none;padding:10px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;">ביטול</button>
-      <div style="font-size:10px;color:#9aa;margin-top:8px;">${(err && err.name) || ''}</div>
-    </div>`;
-  document.body.appendChild(panel);
-}
-
-async function retryShareNow() {
-  const c = window._retryShare; if (!c) return;
-  document.getElementById('_step_panel')?.remove();
-  try {
-    await navigator.share({ files: c.shareFiles, title: c.subject, text: c.body });
-    clearDraft();
-  } catch (err) {
-    if (err && err.name === 'AbortError') return;
-    // still refused → classic way: download files + open mail
-    downloadHtmlFiles(c.htmlFiles);
-    setTimeout(() => showStepPanel(c.htmlFiles.map(f => f.name).join(' + '), c.subject, c.body), 700);
-  }
-}
-
 function openMailAndClose(encSubject, encBody) {
   document.getElementById('_step_panel').remove();
-  window.location.href = `mailto:${EMAIL_TO}?cc=${EMAIL_CC}&subject=${decodeURIComponent(encSubject)}&body=${decodeURIComponent(encBody)}`;
+  window.location.href = 'mailto:' + EMAIL_TO + '?cc=' + EMAIL_CC +
+    '&subject=' + encodeURIComponent(decodeURIComponent(encSubject)) +
+    '&body=' + encodeURIComponent(decodeURIComponent(encBody));
 }
 
 async function ensurePdfLibraries() {
@@ -1753,52 +1566,13 @@ async function ensurePdfLibraries() {
 }
 
 async function createPdfBlob(d) {
-  return htmlToPdfBlob(buildPrintDoc(d));
-}
-
-async function htmlToPdfBlob(html) {
   await ensurePdfLibraries();
+  const html = buildPrintDoc(d);
   const iframe = document.createElement('iframe');
   iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;height:2000px;border:none;visibility:hidden;';
   document.body.appendChild(iframe);
   await new Promise(resolve => { iframe.onload = resolve; iframe.srcdoc = html; });
   await new Promise(r => setTimeout(r, 900));
-
-  // html2canvas ignores CSS page rules → lay out pages ourselves before the snapshot:
-  // (1) section ד starts a new page only if it would otherwise begin on page 1;
-  // (2) no table row / title / text block is cut across a page edge; titles never sit alone at a page bottom.
-  (function paginate() {
-    const doc = iframe.contentDocument, body = doc.body;
-    const H = 794 * 297 / 210;                                    // A4 height at 794px width
-    const topOf = el => el.getBoundingClientRect().top - body.getBoundingClientRect().top;
-    const spacerBefore = (el, px) => {
-      if (px <= 0) return;
-      if (el.tagName === 'TR') {
-        const tr = doc.createElement('tr');
-        tr.innerHTML = '<td colspan="20" style="height:' + Math.ceil(px) + 'px;padding:0;border:none;background:#fff"></td>';
-        el.parentNode.insertBefore(tr, el);
-      } else {
-        const d = doc.createElement('div');
-        d.style.height = Math.ceil(px) + 'px';
-        el.parentNode.insertBefore(d, el);
-      }
-    };
-    doc.querySelectorAll('[style*="break-before:page"]').forEach(el => {
-      const prev = el.previousElementSibling;                     // fixed 140px spacer from the print layout
-      if (prev && /height:\s*140px/.test(prev.getAttribute('style') || '')) prev.style.height = '0';
-      const top = topOf(el);
-      if (top > 1 && top < H) spacerBefore(el, H - top);
-    });
-    const els = Array.from(body.querySelectorAll('h2, h3, tr, div'))
-      .filter(e => e.tagName !== 'DIV' || !e.querySelector('div, table, tr'));
-    els.forEach(el => {
-      const top = topOf(el), h = el.getBoundingClientRect().height;
-      if (!h || h > H * 0.5) return;
-      const edge = (Math.floor(top / H) + 1) * H;
-      const isTitle = /^H[23]$/.test(el.tagName);
-      if (top + h > edge - 2 || (isTitle && edge - (top + h) < 60)) spacerBefore(el, edge - top + 6);
-    });
-  })();
 
   const canvas = await html2canvas(iframe.contentDocument.body, {
     scale: 3, useCORS: true, allowTaint: true,
@@ -1847,6 +1621,7 @@ async function sendEmail() {
     alert('יש למלא שם מקבל השירות ותאריך לפני השליחה.');
     return;
   }
+
   const workerName = d.name || 'מקבל שירות';
   const btn = document.querySelector('.btn-email');
   const origText = btn.innerHTML;
@@ -1865,22 +1640,22 @@ async function sendEmail() {
 
 בברכה`;
 
-    if (navigator.canShare && navigator.canShare({ files: shareFiles }) && navigator.share) {
+    // שליחה = חלון "שיתוף" של Windows עם שני הקבצים המוכנים.
+    // הקבצים נוצרים בזיכרון בלבד — שום דבר לא נשמר לדיסק.
+    if (navigator.canShare && navigator.share && navigator.canShare({ files: shareFiles })) {
       try {
         await navigator.share({ files: shareFiles, title: subject, text: body });
         clearDraft();
+        return;
       } catch (shareErr) {
-        if (shareErr && shareErr.name === 'AbortError') return;      // user closed the share window — nothing to do
-        // The browser refused to open the share window (e.g. right after PDF downloads / a pending
-        // "download multiple files" prompt). A fresh tap is a new user gesture — offer it.
-        console.warn('share failed:', shareErr);
-        showShareRetryPanel(shareFiles, subject, body, htmlFiles, shareErr);
+        if (shareErr && shareErr.name === 'AbortError') return; // המשתמש סגר את החלון
+        console.error(shareErr);
+        alert('לא ניתן לפתוח את חלון השיתוף: ' + (shareErr && shareErr.message || shareErr));
+        return;
       }
-      return;
     }
 
-    downloadHtmlFiles(htmlFiles);
-    setTimeout(() => showStepPanel(htmlFiles.map(f => f.name).join(' + '), subject, body), 700);
+    alert('הדפדפן הזה לא תומך בשיתוף קבצים. יש לפתוח את הטופס ב-Chrome או Edge מעודכן.');
   } catch(err) {
     console.error(err);
     alert('שגיאה ביצירת הקבצים: ' + err.message);
@@ -1900,8 +1675,8 @@ function clearForm() {
   document.querySelectorAll('textarea').forEach(el => { el.value = ''; autoResizeTextarea(el); });
   document.querySelectorAll('input[type="radio"]').forEach(el => el.checked = false);
   document.querySelectorAll('.ta-status').forEach(el => { el.textContent = ''; el.className = 'ta-status'; });
-  formIsDirty = false;
   clearDraft();
+  formIsDirty = false;
 }
 
 // ──────────────────────────────────────────
@@ -1994,10 +1769,6 @@ function buildSavedFormHtml(savedData) {
     '  if (typeof initAutoResizeTextareas === "function") setTimeout(initAutoResizeTextareas, 0);' +
     '});';
   cloneDoc.body.appendChild(restoreScript);
-  // mark as saved copy → no draft banner / autosave inside the saved file
-  const mk = cloneDoc.createElement('meta'); mk.name = 'saved-copy'; mk.content = '1';
-  cloneDoc.head.appendChild(mk);
-  const slot = cloneDoc.getElementById('draft_banner_slot'); if (slot) slot.innerHTML = '';
   return '<!DOCTYPE html>\n' + cloneDoc.documentElement.outerHTML;
 }
 
@@ -2007,12 +1778,19 @@ function sectionAverage(rows) {
   return (nums.reduce((a,b)=>a+b,0) / nums.length).toFixed(1);
 }
 
+// "לא רלבנטי" / "לא רלוונטי" / "n/a" בהערה — השורה נחשבת מלאה גם בלי דירוג
+const NOT_RELEVANT_RE = /^(לא\s*(רלבנטי|רלוונטי|רלונטי)|n\/?a|not\s+relevant)\s*[.!]?$/i;
+function isNotRelevant(text) {
+  return NOT_RELEVANT_RE.test(String(text || '').replace(/\s+/g, ' ').trim());
+}
+
 function collectImportantNotes(d) {
   const out = [];
   const sectionNames = { a:'הרגלי עבודה', b:'תקשורת והתנהגות בינאישית', g:'תפקוד בעבודה', d:'מוטיבציה' };
   Object.entries(d.ratings || {}).forEach(([sec, rows]) => {
     rows.forEach(r => {
-      if (r.note && String(r.note).trim() && !isNotRelevantNote(r.note)) out.push(`${sectionNames[sec] || sec} — ${r.item}: ${r.note}`);
+      const note = String(r.note || '').trim();
+      if (note && !isNotRelevant(note)) out.push(`${sectionNames[sec] || sec} — ${r.item}: ${note}`);
     });
   });
   return out;
@@ -2085,6 +1863,345 @@ function downloadHtmlFiles(files) {
 }
 
 // ──────────────────────────────────────────
+// PDF (A4) — הדפסה אמיתית ולא צילום מסך
+// ──────────────────────────────────────────
+function buildPdfDoc(d) {
+  const esc = v => String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const scoreLabel = { '1': 'במידה מועטה (1)', '2': 'במידה בינונית (2)', '3': 'במידה רבה (3)', '–': '–' };
+  const scoreColor = { '1': '#c0392b', '2': '#d68910', '3': '#1e8449', '–': '#9aa4b2' };
+  const sectionNames = {
+    a: 'א. הרגלי עבודה',
+    b: 'ב. תקשורת והתנהגות בינאישית',
+    g: 'ג. תפקוד בעבודה',
+    d: 'ד. מוטיבציה להתפתחות ולתעסוקה נתמכת'
+  };
+
+  const tables = Object.entries(sectionNames).map(([tbl, label]) => {
+    const rows = (d.ratings && d.ratings[tbl]) || [];
+    const body = rows.map(r => {
+      const sc = r.score || '–';
+      const na = sc === '–' && isNotRelevant(r.note);
+      return `<tr><td class="c-item">${esc(r.item)}</td>` +
+             `<td class="c-score" style="color:${na ? '#9aa4b2' : (scoreColor[sc] || '#9aa4b2')}">${esc(na ? 'לא רלבנטי' : (scoreLabel[sc] || sc))}</td>` +
+             `<td class="c-note">${esc(na ? '' : (r.note || ''))}</td></tr>`;
+    }).join('');
+    return `<section class="sec">` +
+      `<h3>${esc(label)}</h3>` +
+      `<table><thead><tr><th class="c-item">המדד</th><th class="c-score">דירוג</th><th>הערות</th></tr></thead>` +
+      `<tbody>${body}</tbody></table></section>`;
+  }).join('');
+
+  const texts = Object.keys(d.texts || {}).map(id => {
+    const t = d.texts[id];
+    const val = String((t && t.value) || '');
+    if (!val.trim()) return '';
+    const title = (TEXT_SECTIONS.find(x => x.id === id) || {}).label || t.label || '';
+    // קצר — שומרים את הכותרת והטקסט יחד; ארוך — נותנים לטקסט לזרום,
+    // אבל הכותרת לא נשארת לבד בסוף העמוד (orphans/widows + break-after)
+    const cls = val.length <= 700 ? 'sec keep' : 'sec split';
+    return `<section class="${cls}"><h3>${esc(title)}</h3>` +
+           `<div class="box">${esc(val)}</div></section>`;
+  }).join('');
+
+  const obsRows = (d.observations || []).map(o => {
+    const color = o.value === 'כן' ? '#1e8449' : o.value === 'לפעמים' ? '#d68910' : o.value === 'לא' ? '#c0392b' : '#9aa4b2';
+    return `<tr><td class="c-item">${esc(o.item)}</td>` +
+           `<td class="c-score" style="color:${color}">${esc(o.value || '–')}</td>` +
+           `<td class="c-note">${esc(o.note || '')}</td></tr>`;
+  }).join('');
+  const obs = obsRows
+    ? `<section class="sec keep"><h3>ח. תצפיות התנהגותיות</h3>` +
+      `<table><thead><tr><th class="c-item">תצפית</th><th class="c-score">לא / לפעמים / כן</th><th>הערה</th></tr></thead><tbody>${obsRows}</tbody></table></section>`
+    : '';
+
+  const logo = (window.ORG_CONFIG && ORG_CONFIG.files && ORG_CONFIG.files.logoOrg) ? ORG_CONFIG.files.logoOrg : '';
+  const title = `טופס_הערכה_${(d.name || 'הערכה').replace(/\s+/g, '_')}_${d.date || ''}`;
+
+  return `<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="utf-8">
+<title>${esc(title)}</title>
+<style>
+  @page { size: A4; margin: 12mm 11mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'Heebo', Arial, sans-serif; direction: rtl; color: #1e2535; font-size: 12.4px; line-height: 1.45;
+         -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .doc-head { display: flex; align-items: center; justify-content: space-between; gap: 14px;
+              background: linear-gradient(135deg, #1a3a5c, #2563a8); color: #fff;
+              padding: 10px 14px; border-radius: 6px; margin-bottom: 10px; }
+  .doc-head .t1 { font-size: 15.5px; font-weight: 700; }
+  .doc-head .t2 { font-size: 11px; color: #c5ddf5; margin-top: 2px; }
+  .doc-head img { height: 44px; width: auto; object-fit: contain; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 26px; background: #e8f1fb; border: 1px solid #b8d0ee;
+          border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; }
+  .meta .lbl { font-size: 9.5px; color: #6b7a8c; font-weight: 700; }
+  .meta .val { font-size: 12.4px; font-weight: 600; }
+  h3 { font-size: 12.6px; color: #1a3a5c; margin: 0 0 4px; padding-bottom: 3px;
+       border-bottom: 2px solid #2563a8; break-after: avoid; page-break-after: avoid; }
+  .sec { margin-top: 12px; }
+  .sec.keep { break-inside: avoid; page-break-inside: avoid; }
+  .sec.split h3 { break-after: avoid; page-break-after: avoid; }
+  .sec.split .box { orphans: 3; widows: 3; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { display: table-header-group; }
+  tr, td, th { break-inside: avoid; page-break-inside: avoid; }
+  th { background: #1a3a5c; color: #fff; font-size: 11px; font-weight: 600; padding: 5px 8px; text-align: right; }
+  td { border: 1px solid #c5d5e8; padding: 4px 8px; font-size: 11.4px; vertical-align: top; }
+  th.c-item, td.c-item { width: 44%; }
+  th.c-score, td.c-score { width: 30%; text-align: center; }
+  td.c-note { color: #444; }
+  .box { background: #f0f6ff; border-right: 4px solid #2563a8; padding: 8px 11px;
+         white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12.2px; }
+  .suit { font-size: 12.6px; font-weight: 700; background: #f0f6ff; border-right: 4px solid #2563a8; padding: 6px 11px; }
+  .signs { display: flex; gap: 60px; margin-top: 26px; break-inside: avoid; page-break-inside: avoid; }
+  .signs .lbl { font-size: 9.5px; color: #6b7a8c; }
+  .signs .ln { width: 190px; border-bottom: 1.5px solid #9aa4b2; padding: 7px 0 3px; font-weight: 700; font-size: 12.4px; }
+  .foot { margin-top: 18px; font-size: 9px; color: #98a2b3; text-align: left; }
+</style></head><body>
+  <header class="doc-head">
+    <div>
+      <div class="t1">טופס הערכה למקבל שירות – משרד הבריאות</div>
+      <div class="t2">מפעל מוגן שיקומי לבריאות הנפש באר שבע · שאול המלך 113</div>
+    </div>
+    ${logo ? `<img src="${logo}" alt="">` : ''}
+  </header>
+  <div class="meta">
+    <div><div class="lbl">תאריך</div><div class="val">${esc(d.date || '–')}</div></div>
+    <div><div class="lbl">שם המשתקם</div><div class="val">${esc(d.name || '–')}</div></div>
+    <div><div class="lbl">תעודת זהות</div><div class="val">${esc(d.id || '–')}</div></div>
+    <div><div class="lbl">ממוצע גב"ע חודשי</div><div class="val">${esc(d.wage || '–')}</div></div>
+  </div>
+  ${tables}
+  ${texts}
+  ${obs}
+  <section class="sec keep">
+    <h3>ט. התאמה להשמה נתמכת</h3>
+    <div class="suit">${esc(d.suitability || '–')}</div>
+  </section>
+  <div class="signs">
+    <div><div class="lbl">חתימת המדריך</div><div class="ln">${esc(d.signature || '–')}</div></div>
+    <div><div class="lbl">תאריך חתימה</div><div class="ln">${esc(d.signatureDate || '–')}</div></div>
+  </div>
+  <div class="foot">${esc(title)}</div>
+</body></html>`;
+}
+
+// Chrome מציע לשמירה את שם הלשונית. לכן לפני כל הדפסה משנים את שם העמוד
+// לשם הקובץ הרצוי, ואחרי ההדפסה מחזירים — אחרת שני הקבצים נשמרים באותו שם.
+function printPdf(html, fileName) {
+  const prevTitle = document.title;
+  if (fileName) document.title = String(fileName).replace(/\.pdf$/i, '');
+  return new Promise(resolve => {
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.style.cssText = 'position:fixed;left:-10000px;top:0;width:820px;height:1160px;border:0;opacity:0;pointer-events:none;';
+    document.body.appendChild(iframe);
+
+    iframe.onload = async function () {
+      try {
+        const doc = iframe.contentDocument;
+        if (doc.fonts && doc.fonts.ready) { try { await doc.fonts.ready; } catch (e) {} }
+        const imgs = Array.from(doc.images || []);
+        await Promise.all(imgs.map(img => img.complete ? Promise.resolve()
+          : new Promise(r => { img.onload = r; img.onerror = r; })));
+        await new Promise(r => setTimeout(r, 150));
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (err) {
+        console.error(err);
+        const w = window.open('', '_blank');
+        if (w) { w.document.write(html); w.document.close(); }
+      }
+      document.title = prevTitle;
+      setTimeout(() => { if (iframe.parentNode) iframe.remove(); }, 10000);
+      resolve();
+    };
+
+    iframe.srcdoc = html;
+  });
+}
+
+function showPrintHint(step, fileName) {
+  let box = document.getElementById('_print_hint');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = '_print_hint';
+    box.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:10002;' +
+      'background:#0f1e3a;color:#fff;border-radius:12px;box-shadow:0 10px 34px rgba(0,0,0,.35);' +
+      'padding:11px 18px;font-family:Heebo,Arial,sans-serif;direction:rtl;font-size:13.5px;' +
+      'max-width:92vw;text-align:center;line-height:1.55;';
+    document.body.appendChild(box);
+  }
+  box.innerHTML = '<b>' + step + '</b><br><span style="color:#a8c4e0;font-size:12px;">' +
+    'בחר "שמור כ-PDF" · שם קובץ: <b style="color:#fff">' + fileName + '</b></span>';
+}
+
+function hidePrintHint() {
+  const b = document.getElementById('_print_hint');
+  if (b) b.remove();
+}
+
+// דוח קצר (לליבי) כקובץ PDF — אותו תוכן כמו קובץ ה-HTML, בהתאמת A4
+function buildReportPdf(d, fileName) {
+  let html = buildLibiReportHtml(d);
+  const css = '<style>' +
+    '@page { size: A4; margin: 12mm 11mm; }' +
+    'html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }' +
+    '.page { max-width: none !important; margin: 0 !important; box-shadow: none !important; border-radius: 0 !important; }' +
+    '.head { break-inside: avoid; page-break-inside: avoid; }' +
+    'h2 { break-after: avoid; page-break-after: avoid; }' +
+    'table, .txt, .txt-progress, .grid { break-inside: avoid; page-break-inside: avoid; }' +
+    'tr, td { break-inside: avoid; }' +
+    '</style></head>';
+  html = html.replace('</head>', css);
+  if (fileName) {
+    html = html.replace(/<title>[\s\S]*?<\/title>/, '<title>' + escapeHtml(fileName.replace(/\.pdf$/i, '')) + '</title>');
+  }
+  return html;
+}
+
+async function saveAsPdf() {
+  const name = (document.getElementById('f_name')?.value || '').trim();
+  const date = (document.getElementById('f_date')?.value || '').trim();
+  if (!name || !date) { alert('יש למלא שם מקבל השירות ותאריך לפני השמירה.'); return; }
+  if (!validateRequiredBeforeH()) return;
+  if (!validateRequiredSignature()) return;
+  if (!validateNoCyrillicText()) return;
+
+  const d = collectFormData();
+  const base = safeFilePart(d.name || 'הערכה');
+  const day = d.date || new Date().toISOString().slice(0, 10);
+  const formFile = `טופס_הערכה_${base}_${day}.pdf`;
+  const reportFile = `דוח_הערכה_לליבי_${base}_${day}.pdf`;
+
+  const btn = document.getElementById('btnSavePdf');
+  const orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '🖨 מכין PDF...'; }
+  try {
+    showPrintHint('קובץ 1 מתוך 2 — טופס הערכה', formFile);
+    await printPdf(buildPdfDoc(d), formFile);
+    await new Promise(r => setTimeout(r, 700));
+
+    showPrintHint('קובץ 2 מתוך 2 — דוח קצר לליבי', reportFile);
+    await printPdf(buildReportPdf(d, reportFile), reportFile);
+    await new Promise(r => setTimeout(r, 700));
+
+    hidePrintHint();
+    clearDraft();
+    formIsDirty = false;
+  } catch (err) {
+    hidePrintHint();
+    console.error(err);
+    alert('שגיאה בהכנת ה-PDF: ' + err.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+  }
+}
+
+// ──────────────────────────────────────────
+// DRAFT AUTOSAVE — черновик в localStorage
+// ──────────────────────────────────────────
+const DRAFT_KEY = 'eval_form_draft_v1';
+const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // שבוע
+let _draftTimer = null;
+
+function draftHasContent(d) {
+  if (!d) return false;
+  if ((d.name || '').trim() || (d.id || '').trim() || (d.wage || '').trim() || (d.signature || '').trim()) return true;
+  if (Object.values(d.ratings || {}).some(rows => rows.some(r => r.score !== '–' || String(r.note || '').trim()))) return true;
+  if (Object.values(d.texts || {}).some(t => String(t.value || '').trim())) return true;
+  if (d.suitability && d.suitability !== '–') return true;
+  if ((d.observations || []).some(o => o.value !== '–' || String(o.note || '').trim())) return true;
+  return false;
+}
+
+function saveDraftNow() {
+  try {
+    const d = collectFormData();
+    if (!draftHasContent(d)) { localStorage.removeItem(DRAFT_KEY); return; }
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ v: 1, savedAt: Date.now(), data: d }));
+  } catch (e) {
+    if (window.console) console.warn('[draft] save failed', e);
+  }
+}
+
+function scheduleDraftSave() {
+  clearTimeout(_draftTimer);
+  _draftTimer = setTimeout(saveDraftNow, 700);
+}
+
+function hideDraftBanner() {
+  const b = document.getElementById('draftBanner');
+  if (b) b.remove();
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+  hideDraftBanner();
+}
+
+function readDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    if (!o || !o.data) return null;
+    if (o.savedAt && (Date.now() - o.savedAt) > DRAFT_MAX_AGE_MS) { localStorage.removeItem(DRAFT_KEY); return null; }
+    return o;
+  } catch (e) { return null; }
+}
+
+function restoreDraft(draft) {
+  try {
+    applyFormData(draft.data);
+    initAutoResizeTextareas();
+    formIsDirty = true;
+    hideDraftBanner();
+  } catch (e) {
+    console.error('[draft] restore failed', e);
+  }
+}
+
+function showDraftBanner(draft) {
+  hideDraftBanner();
+  const when = new Date(draft.savedAt || Date.now());
+  const dd = when.toLocaleDateString('he-IL');
+  const hhmm = when.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+  const who = String((draft.data && draft.data.name) || '').trim();
+
+  const box = document.createElement('div');
+  box.id = 'draftBanner';
+  box.style.cssText = 'position:fixed;bottom:16px;left:16px;right:16px;max-width:620px;margin:0 auto;' +
+    'background:#0f1e3a;color:#fff;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.35);' +
+    'padding:13px 15px;z-index:10001;font-family:Heebo,Arial,sans-serif;direction:rtl;' +
+    'display:flex;gap:10px;align-items:center;flex-wrap:wrap;';
+  box.innerHTML =
+    '<div style="flex:1 1 200px;min-width:170px;">' +
+      '<div style="font-weight:700;font-size:14px;">נמצאה טיוטה שלא נשמרה</div>' +
+      '<div style="font-size:12px;color:#a8c4e0;margin-top:3px;">' + escapeHtml(who || 'ללא שם') + ' · ' + dd + ' ' + hhmm + '</div>' +
+    '</div>' +
+    '<button type="button" id="draftRestore" style="background:#2563a8;color:#fff;border:0;border-radius:9px;' +
+      'padding:9px 14px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">שחזר טיוטה</button>' +
+    '<button type="button" id="draftDelete" style="background:transparent;color:#9bb8d4;border:1px solid #4a6a88;' +
+      'border-radius:9px;padding:9px 12px;font-family:inherit;font-size:13px;cursor:pointer;">מחק</button>' +
+    '<button type="button" id="draftClose" aria-label="סגור" style="background:transparent;color:#9bb8d4;border:0;' +
+      'font-size:18px;line-height:1;cursor:pointer;padding:4px 6px;">✕</button>';
+
+  document.body.appendChild(box);
+  box.querySelector('#draftRestore').onclick = function () { restoreDraft(draft); };
+  box.querySelector('#draftDelete').onclick = function () { clearDraft(); };
+  box.querySelector('#draftClose').onclick = function () { hideDraftBanner(); };
+}
+
+document.addEventListener('input', scheduleDraftSave);
+document.addEventListener('change', scheduleDraftSave);
+window.addEventListener('pagehide', saveDraftNow);
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'hidden') saveDraftNow();
+});
+
+// ──────────────────────────────────────────
 // SAVE AS HTML
 // ──────────────────────────────────────────
 function saveAsHtml() {
@@ -2101,7 +2218,7 @@ function saveAsHtml() {
   const savedData = collectFormData();
   const files = createHtmlFiles(savedData);
   downloadHtmlFiles(files);
-  clearDraft();   // the saved file is now the record
+  clearDraft();
 
   setTimeout(function() {
     formIsDirty = false;
@@ -2113,138 +2230,6 @@ function saveAsHtml() {
       setTimeout(function() { btn.innerHTML = orig; btn.style.removeProperty('background'); }, 2200);
     }
   }, 0);
-}
-
-// ──────────────────────────────────────────
-// DRAFT AUTOSAVE (localStorage, this browser only)
-// ──────────────────────────────────────────
-const DRAFT_KEY = 'hearacha_draft_v1';
-const IS_SAVED_COPY = !!document.querySelector('meta[name="saved-copy"]');
-let draftTimer = null;
-let draftClearedSnapshot = null;   // form state at the moment it was saved/sent — don't re-create a draft from it
-
-function formHasContent(d) {
-  if (!d) return false;
-  if ((d.name || '').trim() || (d.id || '').trim()) return true;
-  if (d.ratings && Object.values(d.ratings).some(rows => rows.some(r => r.score && r.score !== '–'))) return true;
-  if (d.texts && Object.values(d.texts).some(t => (t.value || '').trim())) return true;
-  if ((d.wage || '').trim()) return true;
-  if (d.ratings && Object.values(d.ratings).some(rows => rows.some(r => String(r.note || '').trim()))) return true;
-  if (d.suitability && d.suitability !== '–') return true;
-  if ((d.observations || []).some(o => (o.value && o.value !== '–') || String(o.note || '').trim())) return true;
-  return false;
-}
-
-function saveDraftNow() {
-  if (IS_SAVED_COPY) return;
-  try {
-    const d = collectFormData();
-    if (!formHasContent(d)) return;
-    if (draftClearedSnapshot && JSON.stringify(d) === draftClearedSnapshot) return;
-    draftClearedSnapshot = null;
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: Date.now(), data: d }));
-    const hint = document.getElementById('draft_saved_hint');
-    if (hint) {
-      const t = new Date();
-      hint.textContent = '📝 טיוטה נשמרה ' + String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
-    }
-  } catch (e) { /* storage blocked — ignore */ }
-}
-
-function scheduleDraftSave() {
-  if (IS_SAVED_COPY) return;
-  clearTimeout(draftTimer);
-  draftTimer = setTimeout(saveDraftNow, 800);
-}
-
-const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;   // a draft older than a week is dropped
-
-function readDraft() {
-  try {
-    const raw = localStorage.getItem(DRAFT_KEY);
-    const o = raw ? JSON.parse(raw) : null;
-    if (o && o.savedAt && Date.now() - o.savedAt > DRAFT_MAX_AGE_MS) { localStorage.removeItem(DRAFT_KEY); return null; }
-    return o;
-  } catch (e) { return null; }
-}
-
-function clearDraft() {
-  clearTimeout(draftTimer);
-  try { draftClearedSnapshot = JSON.stringify(collectFormData()); } catch (e) {}
-  try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
-  const slot = document.getElementById('draft_banner_slot'); if (slot) slot.innerHTML = '';
-  const hint = document.getElementById('draft_saved_hint'); if (hint) hint.textContent = '';
-}
-
-function showDraftBanner() {
-  if (IS_SAVED_COPY) return;
-  const dr = readDraft();
-  if (!dr || !dr.data || !formHasContent(dr.data)) return;
-  if (formHasContent(collectFormData())) return;     // form already filled → don't offer
-  const t = new Date(dr.savedAt || Date.now());
-  const when = t.toLocaleDateString('he-IL') + ' ' + String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
-  const who = (dr.data.name || '').trim() || 'ללא שם';
-  const slot = document.getElementById('draft_banner_slot');
-  if (!slot) return;
-  slot.innerHTML = `<div class="draft-banner">
-      <span style="font-size:18px">📝</span>
-      <span>נמצאה טיוטה שלא נשמרה: <strong>${who.replace(/[<>&]/g,'')}</strong> · ${when}</span>
-      <div class="db-actions">
-        <button type="button" class="db-restore" onclick="restoreDraft()">שחזר טיוטה</button>
-        <button type="button" class="db-discard" onclick="if(confirm('למחוק את הטיוטה?')) clearDraft()">מחק</button>
-      </div>
-    </div>`;
-}
-
-function restoreDraft() {
-  const dr = readDraft();
-  if (!dr || !dr.data) return;
-  applyFormData(dr.data);
-  if (typeof initAutoResizeTextareas === 'function') initAutoResizeTextareas();
-  const slot = document.getElementById('draft_banner_slot'); if (slot) slot.innerHTML = '';
-  formIsDirty = true;
-}
-
-if (!IS_SAVED_COPY) {
-  document.addEventListener('input', scheduleDraftSave);
-  document.addEventListener('change', scheduleDraftSave);
-  // Values set by code (choosing a name from the suggestion list fills name + ת.ז, "תרגם לעברית" replaces text)
-  // fire no input event → also save after every click/tap, when leaving the page, and every few seconds.
-  document.addEventListener('click', scheduleDraftSave, true);
-  document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'hidden') saveDraftNow(); });
-  window.addEventListener('pagehide', saveDraftNow);
-  setInterval(saveDraftNow, 5000);
-}
-
-// ──────────────────────────────────────────
-// SAVE AS PDF (A4, Ministry layout from buildPrintDoc)
-// ──────────────────────────────────────────
-async function saveAsPdf() {
-  if (!validateRequiredBeforeH()) return;
-  if (!validateRequiredSignature()) return;
-  if (!validateNoCyrillicText()) return;
-  const d = collectFormData();
-  const btn = document.getElementById('btnSavePdf');
-  const orig = btn ? btn.innerHTML : '';
-  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ מכין PDF...'; }
-  try {
-    const safe = safeFilePart(d.name || 'הערכה');
-    const date = d.date || new Date().toISOString().slice(0,10);
-    const formBlob   = await createPdfBlob(d);
-    const reportBlob = await htmlToPdfBlob(buildLibiReportHtml(d));
-    downloadBlob(formBlob, `טופס_הערכה_${safe}_${date}.pdf`);
-    await new Promise(r => setTimeout(r, 400));          // browsers block two downloads fired at the same instant
-    downloadBlob(reportBlob, `דוח_הערכה_לליבי_${safe}_${date}.pdf`);
-    formIsDirty = false;
-    clearDraft();
-    if (btn) { btn.innerHTML = '✓ נשמרו 2 קבצי PDF'; setTimeout(() => { btn.innerHTML = orig; }, 2200); }
-  } catch (err) {
-    console.error(err);
-    alert('לא ניתן ליצור PDF (נדרש חיבור לאינטרנט בפעם הראשונה): ' + (err && err.message ? err.message : err));
-    if (btn) btn.innerHTML = orig;
-  } finally {
-    if (btn) btn.disabled = false;
-  }
 }
 
 // ──────────────────────────────────────────
@@ -2261,7 +2246,14 @@ window.addEventListener('beforeunload', function(e) {
 window.addEventListener('load', function() {
   loadClientsFromSharedStorage();
   initAutoResizeTextareas();
-  setTimeout(showDraftBanner, 50);
+});
+
+// הצעת שחזור טיוטה — רק אם באמת יש תוכן
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    const draft = readDraft();
+    if (draft && draftHasContent(draft.data)) showDraftBanner(draft);
+  }, 400);
 });
 </script>
 
@@ -2410,10 +2402,6 @@ function buildAllStaffSelect(selectEl, includeEmpty = true, extraOptions = []) {
 // החלפת לוגואים בכל הטפסים
 function fillLogos() {
   // לוגו עמותה
-  // Broken / unreachable logo → hide it instead of showing a broken-image icon with alt text
-  document.querySelectorAll('[data-logo]').forEach(img => {
-    img.onerror = function() { this.style.display = 'none'; };
-  });
   document.querySelectorAll('[data-logo="org"]').forEach(img => {
     img.src    = ORG_CONFIG.files.logoOrg;
     img.style.height = img.dataset.logoHeight || ORG_CONFIG.logoSizes.orgHeight;
